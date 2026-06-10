@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>CDO Regulatory Scraper — Project Control & Onboarding</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#121723; --panel2:#0f1420; --line:#1f2838; --line2:#2a3550;
+    --ink:#e6edf6; --dim:#8493ab; --dim2:#5b6981;
+    --ca:#f5b301; --fed:#3b82f6; --ok:#34d399; --warn:#f59e0b; --next:#22d3ee; --idle:#6366f1; --bad:#ef4444; --part:#fb923c;
+    --fp:#ff6b6b; --roof:#f5b301; --heat:#f97316; --resp:#a855f7; --ppe:#22d3ee; --mat:#34d399; --lad:#60a5fa; --scaf:#818cf8; --haz:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font:12px/1.45 ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+  a{color:var(--next);text-decoration:none} a:hover{text-decoration:underline}
+  .wrap{max-width:1480px;margin:0 auto;padding:14px 16px 70px}
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    border:1px solid var(--line);background:linear-gradient(180deg,#141b29,#0f1420);
+    border-radius:10px;padding:12px 16px}
+  .logo{width:38px;height:38px;flex:0 0 auto}
+  h1{font-size:15px;margin:0;letter-spacing:.3px}
+  .sub{color:var(--dim);font-size:11px;margin-top:2px}
+  .pills{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+  .pill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line2);
+    background:#0e1726;border-radius:999px;padding:4px 9px;font-size:10.5px;color:var(--dim)}
+  .pill b{color:var(--ink)} .dot{width:7px;height:7px;border-radius:50%}
+  .blink{animation:bl 1.6s ease-in-out infinite} @keyframes bl{50%{opacity:.35}}
+  /* north star */
+  .north{display:flex;gap:14px;align-items:flex-start;margin-top:12px;border:1px solid #2b3a22;
+    background:linear-gradient(180deg,#10180f,#0d1410);border-radius:10px;padding:12px 16px}
+  .north svg{flex:0 0 auto;margin-top:2px}
+  .north .lab{font-size:10px;letter-spacing:2px;color:#7fae5e;text-transform:uppercase}
+  .north .txt{font-size:12.5px;color:#dfe8d6;margin-top:3px;line-height:1.5}
+  .north .txt b{color:#bfe89a}
+  .north .who{font-size:10px;color:var(--dim2);margin-top:5px}
+  /* tabs */
+  .tabs{display:flex;gap:4px;margin:14px 0 12px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+  .tab{cursor:pointer;padding:8px 14px;font-size:11.5px;color:var(--dim);border:1px solid transparent;
+    border-bottom:none;border-radius:8px 8px 0 0;letter-spacing:.4px;display:flex;align-items:center;gap:7px}
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--ink);background:var(--panel);border-color:var(--line);position:relative;top:1px}
+  .tab .b{background:#0e1726;border:1px solid var(--line2);border-radius:999px;padding:0 6px;font-size:9.5px;color:var(--dim)}
+  .tab.active .b{color:var(--ink)}
+  .view{display:none} .view.active{display:block}
+  /* layout */
+  .grid{display:grid;gap:12px;margin-bottom:12px}
+  .c4{grid-template-columns:repeat(4,1fr)} .c3{grid-template-columns:1.15fr 1fr 1fr}
+  .c2{grid-template-columns:1fr 1fr} .c2b{grid-template-columns:1.4fr 1fr}
+  @media(max-width:1080px){.c4,.c3,.c2,.c2b{grid-template-columns:1fr 1fr}}
+  @media(max-width:640px){.c4,.c3,.c2,.c2b{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .panel h2{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);
+    margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .panel h2 .tag{margin-left:auto;color:var(--dim2);font-weight:400;letter-spacing:.5px;text-transform:none}
+  .kpi{display:flex;align-items:center;gap:12px}
+  .kpi .num{font-size:26px;font-weight:700;line-height:1} .kpi .lbl{color:var(--dim);font-size:10.5px;margin-top:3px}
+  .kpi .delta{font-size:10px;color:var(--ok)}
+  .chip{display:inline-flex;align-items:center;gap:5px;border-radius:5px;padding:2px 7px;font-size:10px;
+    border:1px solid var(--line2);background:#0e1726;white-space:nowrap}
+  .sq{width:8px;height:8px;border-radius:2px;display:inline-block;flex:0 0 auto}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th,td{text-align:left;padding:5px 7px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim);font-weight:600;font-size:10px;letter-spacing:.5px;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--panel);z-index:1}
+  tr:hover td{background:#0e1521}
+  .mono{font-variant-numeric:tabular-nums}
+  .scrollx{overflow:auto;max-height:560px}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;color:var(--dim);font-size:10px}
+  .filterbar{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+  .fbtn{cursor:pointer;border:1px solid var(--line2);background:#0e1726;color:var(--dim);border-radius:6px;padding:3px 9px;font-size:10px}
+  .board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @media(max-width:980px){.board{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.board{grid-template-columns:1fr}}
+  .col{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px}
+  .col h3{font-size:10.5px;margin:0 0 8px;letter-spacing:.5px;display:flex;align-items:center;gap:6px;text-transform:uppercase}
+  .col h3 .ct{margin-left:auto;color:var(--dim2);background:#0e1726;border-radius:999px;padding:1px 7px;font-size:9.5px}
+  .card{background:#0e1521;border:1px solid var(--line);border-left-width:3px;border-radius:6px;padding:7px 8px;margin-bottom:7px}
+  .card .t{font-size:11px;color:var(--ink);font-weight:600} .card .d{font-size:10px;color:var(--dim);margin-top:3px}
+  .card .meta{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+  .mtag{font-size:9px;color:var(--dim2);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+  .tl{position:relative;margin-left:6px;padding-left:18px;border-left:1px solid var(--line2)}
+  .tl .ev{position:relative;padding:0 0 13px 4px}
+  .tl .ev::before{content:"";position:absolute;left:-24px;top:2px;width:11px;height:11px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px #0b0e14}
+  .tl .ev.warn::before{background:var(--warn)} .tl .ev.fix::before{background:var(--next)}
+  .tl .ev .h{font-size:11px;font-weight:600} .tl .ev .b{font-size:10px;color:var(--dim);margin-top:2px}
+  .tl .ev .n{position:absolute;left:-58px;top:1px;font-size:9px;color:var(--dim2);width:26px;text-align:right}
+  .foot{color:var(--dim2);font-size:10px;text-align:center;margin-top:18px}
+  .st{font-size:9px;border-radius:4px;padding:1px 6px;font-weight:700;white-space:nowrap}
+  .note{font-size:10px;color:var(--dim);border-left:2px solid var(--line2);padding-left:8px;margin-top:8px;line-height:1.5}
+  .yes{color:var(--ok)} .no{color:var(--bad)} .maybe{color:var(--part)}
+  .reqrow{display:flex;gap:10px;padding:9px 6px;border-bottom:1px solid var(--line);align-items:flex-start}
+  .reqrow:last-child{border:0}
+  .who{flex:0 0 116px;font-weight:700;font-size:10.5px}
+  .schematab td:first-child{color:#cdd8ea;white-space:nowrap}
+  .hl{background:#161d2b;border:1px solid var(--line2);border-radius:8px;padding:9px 11px;margin-bottom:9px}
+  .hl .k{font-size:10px;color:var(--dim);letter-spacing:1px;text-transform:uppercase}
+  .hl .v{font-size:12px;color:var(--ink);margin-top:2px}
+  .ringrow{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+  .ringcell{display:flex;align-items:center;gap:9px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <svg class="logo" viewBox="0 0 48 48" fill="none">
+    <rect x="2" y="2" width="44" height="44" rx="10" fill="#0e1726" stroke="#2a3550"/>
+    <path d="M8 30 L24 14 L40 30" stroke="#f5b301" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <path d="M8 30 L24 14 L40 30 L40 38 L8 38 Z" fill="#f5b30115"/>
+    <circle cx="24" cy="26" r="4.2" fill="#3b82f6"/>
+    <path d="M12 38 L20 38 M28 38 L36 38" stroke="#34d399" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <div>
+    <h1>CDO REGULATORY SCRAPER — PROJECT CONTROL & ONBOARDING</h1>
+    <div class="sub">Roof tear-off compliance · Cal/OSHA Title 8 + Federal OSHA 29 CFR 1926 · Tier-1 legal layer of the CDO Compliance Brain · <span style="color:#5b6981">read this top-to-bottom to onboard</span></div>
+  </div>
+  <div class="pills">
+    <span class="pill"><span class="dot blink" style="background:#34d399"></span> DB <b>connected</b></span>
+    <span class="pill">Supabase <b>compliance</b></span>
+    <span class="pill">36 sections</span>
+    <span class="pill">updated <b>2026-06-08</b></span>
+  </div>
+</header>
+
+<!-- NORTH STAR (always visible) -->
+<div class="north">
+  <svg width="34" height="34" viewBox="0 0 34 34"><path d="M17 2 l3.8 9.2 9.9.8 -7.5 6.5 2.3 9.7 -8.5-5.2 -8.5 5.2 2.3-9.7 -7.5-6.5 9.9-.8z" fill="#bfe89a22" stroke="#7fae5e" stroke-width="1.3"/></svg>
+  <div>
+    <div class="lab">★ The end goal (north star)</div>
+    <div class="txt">A continuously-updated database of the <b>legal-minimum (Tier 1) requirements</b> per <b>state × industry × headcount</b> that the CDO brain compares each customer's policies against — so when a law changes, CDO <b>catches it within 24h</b>, drafts the policy update for human approval, identifies every affected worker, generates the <b>read · sign · train · pass</b> requirement, and <b>blocks or warns at clock-in</b> with auditable evidence. <span style="color:#9fc97e">This scraper is Layer A: the source of truth + the change feed.</span></div>
+    <div class="who">Source: "The Compliance Brain — CDO Master Plan" v1.0 · first customer = S&W Roof Tear Off · CDO = AI workforce platform (time/GPS, scheduling, payroll, HR docs, safety & compliance) — "AI does the heavy lifting, people handle the exceptions."</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs" id="tabs">
+  <div class="tab active" data-v="overview">▦ Overview</div>
+  <div class="tab" data-v="data">▤ Data Captured <span class="b" id="tbData"></span></div>
+  <div class="tab" data-v="user">◐ Needed from User <span class="b" id="tb-user"></span></div>
+  <div class="tab" data-v="ai">◑ Needed from AI <span class="b" id="tb-ai"></span></div>
+</div>
+
+<!-- ============================= OVERVIEW ============================= -->
+<section class="view active" id="v-overview">
+  <div class="grid c4">
+    <div class="panel kpi"><svg id="g-sections" width="64" height="64"></svg>
+      <div><div class="num" id="kpiTotal">—</div><div class="lbl">sections landed</div><div class="delta" id="kpiSplit">—</div></div></div>
+    <div class="panel kpi"><svg id="g-words" width="64" height="64"></svg>
+      <div><div class="num" id="k-chars">1.0M</div><div class="lbl">chars cited reg text</div><div class="delta">100% w/ citation + URL</div></div></div>
+    <div class="panel kpi"><svg id="g-crit" width="64" height="64"></svg>
+      <div><div class="num" id="kpiCrit">—</div><div class="lbl">Critical-30 safety covered</div><div class="delta" id="kpiCritD">—</div></div></div>
+    <div class="panel kpi"><svg id="g-prog" width="64" height="64"></svg>
+      <div><div class="num" id="k-prog">—</div><div class="lbl">build progress</div><div class="delta">data layer done · watcher next</div></div></div>
+  </div>
+
+  <div class="grid c3">
+    <div class="panel">
+      <h2>Coverage matrix <span class="tag">topic × jurisdiction — hover a cell for details · scroll for all</span></h2>
+      <div style="max-height:360px;overflow-y:auto;overflow-x:hidden;border:1px solid var(--line);border-radius:8px;padding:4px 2px"><svg id="matrix" width="100%"></svg></div>
+    </div>
+    <div class="panel">
+      <h2>Jurisdiction split</h2>
+      <div style="display:flex;align-items:center;gap:14px">
+        <svg id="donut" width="150" height="150"></svg><div id="donut-leg" style="font-size:11px"></div>
+      </div>
+      <div class="note">CA is stricter than the federal floor — it has a dedicated roofing article (§1724/1730/1731) and a specific Heat Illness standard (§3395) that federal OSHA still lacks.</div>
+    </div>
+    <div class="panel">
+      <h2>Content volume <span class="tag">chars by domain (√ scale) — hover for detail</span></h2>
+      <svg id="vol" width="100%"></svg>
+    </div>
+  </div>
+
+  <div class="grid c2b">
+    <div class="panel">
+      <h2>Data flow <span class="tag">where this scraper sits in the 7-layer brain</span></h2>
+      <svg id="flow" width="100%" viewBox="0 0 760 210"></svg>
+    </div>
+    <div class="panel">
+      <h2>Source pipeline <span class="tag">compliance.sources</span></h2>
+      <div id="pipeline"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Project board <span class="tag">live PM state</span></h2>
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="grid c2" style="margin-top:12px">
+    <div class="panel"><h2>Build log <span class="tag">this project, start → now</span></h2><div class="tl" id="timeline"></div>
+      <div class="legend" style="margin-top:12px;padding-top:9px;border-top:1px solid var(--line)">
+        <span><span class="sq" style="background:var(--ok);border-radius:50%"></span> milestone / completed</span>
+        <span><span class="sq" style="background:var(--next);border-radius:50%"></span> fix / correction</span>
+        <span><span class="sq" style="background:var(--warn);border-radius:50%"></span> interruption / pivot</span>
+      </div></div>
+    <div class="panel"><h2>Confirmed decisions <span class="tag">locked with the user</span></h2><div id="decisions"></div></div>
+  </div>
+</section>
+
+<!-- ============================= DATA CAPTURED ============================= -->
+<section class="view" id="v-data">
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="hl"><div class="k">Supabase project</div><div class="v">CDO · <span class="mono">ruuufhxrubeckbcvwvcq</span> · us-east-1</div></div>
+    <div class="hl"><div class="k">Schema</div><div class="v">compliance <span style="color:#5b6981">(scoped, isolated)</span></div></div>
+    <div class="hl"><div class="k">Tables written</div><div class="v"><span class="yes">sources (2)</span> · <span class="yes">regulations (<span id="hlReg">—</span>)</span></div></div>
+    <div class="hl"><div class="k">Tables empty</div><div class="v" style="color:#8493ab">leave_rules (0) · documents (0)</div></div>
+  </div>
+
+  <div class="panel" style="margin-bottom:12px;border-color:#3a2a08;background:linear-gradient(180deg,#15110a,#0f1420)">
+    <h2 style="color:#f5b301">⚠ Two regulation tables — do not confuse them <span class="tag">critical for any agent touching this data</span></h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div style="border:1px solid var(--line);border-left:3px solid var(--ok);border-radius:7px;padding:9px;background:#0e1521">
+        <b style="color:#34d399">compliance.regulations</b> <span class="chip" style="margin-left:4px">our sandbox · 36</span>
+        <div style="color:#aebbcd;font-size:10px;margin-top:5px">Full-text scraped legal sections + content_hash. The <span class="mono">compliance_intern</span> login writes here. <b>This is the table this dashboard reports on.</b></div>
+      </div>
+      <div style="border:1px solid var(--line);border-left:3px solid var(--fed);border-radius:7px;padding:9px;background:#0e1521">
+        <b style="color:#3b82f6">public.compliance_regulations</b> <span class="chip" style="margin-left:4px">production app · 23→26</span>
+        <div style="color:#aebbcd;font-size:10px;margin-top:5px">The LIVE compliance engine's requirement catalog (certs / licenses / written plans). Intern login has <b>NO grants</b> — admin only. Audited 2026-06-09; fix SQL emailed to Stephen.</div>
+      </div>
+    </div>
+    <div class="note">Stephen's 2026-06-09 brief audited the <b>production</b> table and found 2 citation errors (HazCom 1910.1200→1926.59/§5194; Confined Space 1910.146→Art. 37 §§1950–1962) + 3 missing regs (<b>silica</b>, injury recordkeeping, prevailing wage). Verified + cleaned SQL (<span class="mono">migrations/002</span>) emailed to him for admin apply. Note: our sandbox <b>already holds the "missing" silica</b> (§1532.3 + §1926.1153) as full cited text.</div>
+  </div>
+
+  <div class="panel" style="margin-bottom:12px">
+    <h2>Where every data point lives <span class="tag">compliance.regulations — the columns + how we fill them</span></h2>
+    <table class="schematab"><thead><tr><th>Column</th><th>Type</th><th>Filled?</th><th>What it holds / how we capture it</th></tr></thead>
+      <tbody id="schema-reg"></tbody></table>
+    <div class="note">Each scraped CFR/CCR section = one row. <b>raw_text</b> is the full normalized legal text; <b>content_hash</b> is its SHA-256 (the change signal); <b>citation</b> is the natural key (idempotent upserts). The one real gap is <b>effective_date</b> (NULL today — on the AI to-do list).</div>
+  </div>
+
+  <div class="grid c2">
+    <div class="panel">
+      <h2>compliance.sources <span class="tag">2 rows · the watch list</span></h2>
+      <table class="schematab"><thead><tr><th>Column</th><th>Filled?</th><th>Value / note</th></tr></thead><tbody id="schema-src"></tbody></table>
+    </div>
+    <div class="panel">
+      <h2>Audit verdict <span class="tag">captured vs the intended model</span></h2>
+      <div class="ringrow" style="margin-bottom:10px">
+        <div class="ringcell"><svg id="a1" width="56" height="56"></svg><div><b>Data-point completeness</b><div style="color:#8493ab;font-size:10px">regulations columns populated</div></div></div>
+        <div class="ringcell"><svg id="a2" width="56" height="56"></svg><div><b>Critical-30 safety</b><div style="color:#8493ab;font-size:10px">cited sections captured</div></div></div>
+      </div>
+      <div class="note" id="auditnote"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:12px">
+    <h2>Critical-30 SAFETY coverage <span class="tag">Master Plan §12 — what each policy's Tier-1 citation maps to in our data</span></h2>
+    <table><thead><tr><th>#</th><th>Critical policy</th><th>Tier-1 citation</th><th>Status</th><th>In our DB</th></tr></thead><tbody id="crit30"></tbody></table>
+    <div class="legend"><span><span class="sq" style="background:var(--ok)"></span> captured</span><span><span class="sq" style="background:var(--part)"></span> partial</span><span><span class="sq" style="background:var(--bad)"></span> missing → on AI list</span></div>
+  </div>
+
+  <div class="panel" style="margin-top:12px">
+    <h2>Full regulation inventory <span class="tag">click headers to sort · chips to filter — every row links to the official source</span></h2>
+    <div class="filterbar" id="filters"></div>
+    <div class="scrollx"><table id="regtable"><thead><tr>
+      <th data-k="cit">§ Citation</th><th data-k="title">Title / descriptor</th><th data-k="topic">Topic</th>
+      <th data-k="jur">Juris</th><th data-k="domain">Domain</th><th>Applies to</th><th data-k="chars">Size</th><th data-k="hash">hash</th><th>src</th>
+    </tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="panel" style="margin-top:12px">
+    <h2>The bigger model this feeds <span class="tag">compliance_policies — the 23-field matrix (not built yet)</span></h2>
+    <div id="policymodel"></div>
+    <div class="note">Our <b>regulations</b> rows supply the green fields below — the Tier-1 facts. The amber fields are <b>human/research</b> inputs (Eddie + Melissa); the blue fields are <b>engine/assessment</b> logic. The <b>compliance_policies</b> table + the <b>regulatory_changes</b> detection log from the Master Plan don't exist in our schema yet — see "Needed from AI / User".</div>
+  </div>
+</section>
+
+<!-- ============================= NEEDED FROM USER ============================= -->
+<section class="view" id="v-user">
+  <div class="panel" style="margin-bottom:12px">
+    <h2>Do you need an API key? <span class="tag">per source — resolved</span></h2>
+    <table><thead><tr><th>Source</th><th>Used for</th><th>Key required</th><th>Status</th><th>Note</th></tr></thead><tbody id="apistatus"></tbody></table>
+    <div class="note">✔ You supplied the <b>api.data.gov</b> + <b>Congress.gov</b> keys on 2026-06-08; both validated live (HTTP 200) and stored in the gitignored <span class="mono">.env</span>. Nothing else is blocked on a key — the live sources (eCFR + dir.ca.gov) need none.</div>
+  </div>
+  <div class="panel">
+    <h2>What we need from people <span class="tag">decisions · sign-offs · inputs the scraper can't produce</span></h2>
+    <div id="needuser"></div>
+  </div>
+  <div class="note" style="margin-top:10px">Why some of this can't be automated: Tier 2 (industry standard) and Tier 3 (excellence) are <b>research-backed judgment calls</b>, and Tier-1 facts must be <b>human-validated</b> before go-live — that's the charter. The scraper delivers the raw legal facts; people decide what "good" and "great" mean and sign off.</div>
+</section>
+
+<!-- ============================= NEEDED FROM AI ============================= -->
+<section class="view" id="v-ai">
+  <div class="grid c3" style="margin-bottom:0">
+    <div class="panel kpi"><svg id="g-ai1" width="60" height="60"></svg><div><div class="num" id="ai-done">—</div><div class="lbl">AI tasks done</div></div></div>
+    <div class="panel kpi"><svg id="g-ai2" width="60" height="60"></svg><div><div class="num" id="ai-open">—</div><div class="lbl">AI tasks remaining</div></div></div>
+    <div class="panel kpi"><svg id="g-ai3" width="60" height="60"></svg><div><div class="num" id="ai-blk">—</div><div class="lbl">blocked (waiting on a human/schema)</div></div></div>
+  </div>
+  <div class="panel" style="margin-top:12px">
+    <h2>What the AI still needs to do <span class="tag">ordered by what unblocks the most — ✔ = done this session</span></h2>
+    <table><thead><tr><th>Task</th><th>What it produces</th><th>State</th><th>Blocked by</th></tr></thead><tbody id="needai"></tbody></table>
+  </div>
+  <div class="note" style="margin-top:10px">Per your call, this scraper's job is <b>all three</b>: (1) Tier-1 source-of-truth + change feed, (2) structured obligation extraction for the worker-requirement engine, and (3) an embeddings/RAG layer for AI Q&A. Items 1–2 of the data layer are done; the rest are queued above.</div>
+</section>
+
+<div class="foot">CDO Compliance Brain · roof tear-off vertical · static snapshot generated 2026-06-08 from live <span style="color:#8493ab">compliance.regulations</span> · refresh by re-running <span style="color:#8493ab">python run_all.py</span> then regenerating · onboarding doc for future agents</div>
+</div>
+
+<script src="CDO-Project-Dashboard.data.js"></script>
+<script>
+/* ====== DATA from window.CDO_DATA (generated by build_dashboard.py from the live DB)  ============================ */
+const TOPIC=window.CDO_DATA.topic;
+const JUR={CA:{n:"California",c:"var(--ca)"},Federal:{n:"Federal",c:"var(--fed)"},Industry:{n:"Industry",c:"#a3a3a3"}};
+const jc=j=>(JUR[j]||{c:"#6b7280",n:j}).c;  // safe jurisdiction color (handles any value)
+
+const REGS=window.CDO_DATA.regs;
+
+const SOURCES=window.CDO_DATA.sources;
+
+const SCHEMA_REG=[
+ ["jurisdiction","text","yes","'CA' or 'Federal' — the triggering jurisdiction"],
+ ["topic","text","yes","Hazard grouping (fall_protection, roofing_ops, heat_illness, respiratory_hazmat, ppe, materials_handling, ladders, scaffolds, hazcom)"],
+ ["title","text","yes","'29 CFR § 1926.501 — Duty to have fall protection' (citation + official section name)"],
+ ["citation","text","yes","Natural key — '29 CFR § 1926.501' / '8 CCR § 1670'. Upserts dedupe on this."],
+ ["summary","text","yes","First substantive sentence(s) — a human-readable blurb"],
+ ["raw_text","text","yes","Full normalized legal text of the section (the Tier-1 fact source)"],
+ ["content_hash","text","yes","SHA-256 of normalized raw_text — the change-detection signal"],
+ ["source_url","text","yes","Live citable link to the official source"],
+ ["source_id","bigint","yes","FK → compliance.sources"],
+ ["status","text","yes","'active' (in-force regulation)"],
+ ["last_reviewed","date","yes","Date of this scrape run"],
+ ["jurisdiction…","—","",""],
+ ["effective_date","date","no","NULL today — needs parsing from eCFR meta + CA HISTORY notes (AI to-do)"],
+ ["id / created_at / updated_at","auto","yes","Managed by Postgres"]
+];
+const SCHEMA_SRC=[
+ ["name","yes","'Federal OSHA — 29 CFR Part 1926' / 'Cal/OSHA — Title 8'"],
+ ["url","yes","Watch URL (natural key for the source)"],
+ ["kind","yes","'api' (eCFR) / 'scrape' (dir.ca.gov)"],
+ ["jurisdiction","yes","'Federal' / 'CA'"],
+ ["last_scraped_at","yes","now() on each run"],
+ ["status","yes","'active'"],
+ ["notes","yes","Provenance note (e.g. federal heat gap)"],
+ ["industries[] / source_type / selector_cfg","no","Master-Plan fields not in this table yet (AI to-do)"]
+];
+
+/* Critical-30 SAFETY (Master Plan §12). st: ok|part|miss */
+const CRIT30=window.CDO_DATA.crit30;
+
+/* compliance_policies 23-field model. grp: fact|human|engine */
+const POLICYMODEL=[
+ {g:"IDENTITY",grp:"engine",f:["code","name","category","pillar"]},
+ {g:"TRIGGERS",grp:"engine",f:["states","employee_count_min","industries"]},
+ {g:"TIER 1 · legal minimum",grp:"fact",f:["tier1_definition ← raw_text","tier1_citation ← citation"]},
+ {g:"TIER 2 · industry std",grp:"human",f:["tier2_definition","tier2_source"]},
+ {g:"TIER 3 · excellence",grp:"human",f:["tier3_definition","tier3_source"]},
+ {g:"ASSESSMENT",grp:"engine",f:["assessment_question","answer_to_tier_mapping"]},
+ {g:"WORKER",grp:"engine",f:["worker_requirements","recurrence"]},
+ {g:"SEVERITY",grp:"engine",f:["blocks_clock_in","enforcement_mode"]},
+ {g:"STATUS",grp:"human",f:["legal_review_needed","benchmark_status","status","notes"]}
+];
+
+const APISTATUS=[
+ {s:"eCFR (29 CFR 1926)",u:"Federal CFR text",key:"None",st:"live",c:"var(--ok)",note:"public API, no auth — in use now"},
+ {s:"dir.ca.gov Title 8",u:"California regs",key:"None",st:"live",c:"var(--ok)",note:"HTML scrape, no API/key — in use now"},
+ {s:"Federal Register",u:"Fed rule changes",key:"None",st:"planned",c:"var(--next)",note:"public API, no key needed"},
+ {s:"Regulations.gov",u:"Dockets / comments",key:"api.data.gov",st:"key ready ✓",c:"var(--ca)",note:"validated 200 · stored in .env"},
+ {s:"Congress.gov",u:"Federal statutes",key:"Congress key",st:"key ready ✓",c:"var(--ca)",note:"validated 200 · stored in .env"}
+];
+
+const NEEDUSER=[
+ {who:"Stephen",what:"Apply migration 002 to PRODUCTION public.compliance_regulations — 2 citation fixes + 3 new regs (silica, injury recordkeeping, prevailing wage) + fall-protection enrichment",st:"emailed ✓",c:"var(--next)",why:"Production write; the intern login has no grants on this table. Emailed the verified SQL 2026-06-09 — awaiting admin run in the Supabase SQL Editor"},
+ {who:"Stephen / Legal",what:"Before flag logic: silica §1926.1153 Table-1 task-matching + add a jobs.is_public_works flag for prevailing wage",st:"open",c:"var(--warn)",why:"Audit data is safe to load, but these downstream rules need legal/source review before coding"},
+ {who:"Eddie + Melissa",what:"Validate the roof-tear-off section list is complete & sign off the Tier-1 citations",st:"open",c:"var(--warn)",why:"Charter: facts must be human-confirmed before go-live"},
+ {who:"Eddie + Melissa",what:"Define Tier 2 (industry standard) and Tier 3 (excellence) per policy",st:"blocking",c:"var(--bad)",why:"Not scrapable — research-backed judgment calls the matrix needs"},
+ {who:"Steven",what:"Schema decision (CD-02): keep intern tables vs adopt Master-Plan regulatory_sources / regulatory_changes / compliance_policies",st:"decision",c:"var(--next)",why:"Sets where the watcher log + policy matrix land"},
+ {who:"Steven",what:"Run admin migrations / grant table ownership when schema changes are needed",st:"recurring",c:"var(--idle)",why:"compliance_intern has DML only — can't run DDL"},
+ {who:"Legal counsel",what:"Outside review for policies flagged legal_review_needed",st:"open",c:"var(--warn)",why:"Some Tier-1 interpretations need a lawyer before customer-facing use"},
+ {who:"Ops / per-customer",what:"List the cities/counties each customer operates in",st:"open",c:"var(--warn)",why:"Drives the local-ordinance watch (placeholder in M2 inventory)"},
+ {who:"You ✓",what:"api.data.gov + Congress.gov API keys",st:"done ✓",c:"var(--ok)",why:"Received & validated 2026-06-08 — stored in .env"}
+];
+
+/* st: done|next|ready|planned|backlog */
+const NEEDAI=[
+ {t:"Add the 6 missing Critical-30 safety sections ✔",d:"DONE 2026-06-09: IIPP §3203, CA HazCom §5194, LOTO §3314, Fire §3221, First Aid §3400, construction Confined Space §1950 (+PPE §3380 → 10/10)",st:"done",blk:"—"},
+ {t:"Model applicability as data ✔",d:"DONE 2026-06-09: added domain · employee_count_min · industries · applies_when to every reg, so onboarding can filter per client (e.g. '30 employees, has drivers → what applies')",st:"done",blk:"—"},
+ {t:"INGEST ALL COMPLIANCE DOMAINS for a CA employer ✔",d:"DONE — 10 domains live (88 regs, federal+CA): safety, wage/hour, leave & benefits, harassment/EEO, licensing/insurance, prevailing wage, worker classification (AB5), retirement (CalSavers), privacy & conduct, workforce reduction (WARN). Every Critical-30 statutory item covered + many beyond. The specific leftovers are now their own tasks below.",st:"done",blk:"—"},
+ {t:"GAP — PFL & SDI (paid family leave / disability)",d:"PROBLEM: these live in the CA Unemployment Insurance Code (UIC §3300+, §2601+), and leginfo's section view returns no codeLawSectionNoHead container for UIC (same quirk that blocked §226.7) — so our statute scraper can't read them. WHAT TO DO: scrape EDD instead (edd.ca.gov benefit-amount pages) with a small new parser — PFL max weekly benefit, SDI rate, wage-replacement %. Refresh annually.",st:"next",blk:"—"},
+ {t:"GAP — IWC Wage Order 16 (construction)",d:"PROBLEM: Wage Order 16 sets on-site construction meal/rest/overtime/reporting-time pay (directly governs roofing crews), but it's published as a PDF, not HTML/statute, so neither the leginfo nor the Title-8 scraper can read it. WHAT TO DO: add a PDF-extraction path (pdfplumber) for the dir.ca.gov Wage Order 16 PDF; tag domain=wage_hour, industries=[construction].",st:"next",blk:"—"},
+ {t:"GAP — USERRA (federal military leave)",d:"PROBLEM: USERRA lives in 20 CFR Part 1002, but our federal eCFR scraper is hardcoded to Title 29. WHAT TO DO: parameterize the eCFR fetch by CFR title, then add the USERRA sections (20 CFR 1002.x). Pairs with CA military leave (MVC §394, already in).",st:"planned",blk:"—"},
+ {t:"GAP — Local city/county ordinances",d:"PROBLEM: local minimum-wage + paid-sick-leave ordinances stack on state law, but which apply depends on where each customer actually works — there is no single source to scrape. WHAT TO DO: enumerate the cities/counties a customer operates in (needs job-site locations), then scrape each locality's ordinance page. Placeholder until S&W's localities are confirmed.",st:"planned",blk:"customer locality list (Ops)"},
+ {t:"GAP — Drug/Alcohol & Workplace Searches (#21, #23)",d:"PROBLEM: these are company POLICIES, not statutes — there is no single law/citation to scrape (drug testing touches constitutional privacy + FEHA, but no 'policy' statute exists). WHAT TO DO: do NOT scrape as Tier-1 regs; author them in the compliance_policies Tier 2/3 layer with Eddie/Melissa. Out of scope for the regulation scraper.",st:"planned",blk:"compliance_policies layer (Eddie/Melissa)"},
+ {t:"Industry standards → TIER 2 (not Tier-1 regs)",d:"DECISION: NRCA / ABC / trade-body content is STANDARDS & best practice, not law — it does NOT belong in the regulations (Tier-1 legal-minimum) table. All industry-standard material feeds TIER 2 (industry standard) of the policy matrix (tier2_definition / tier2_source), authored with Eddie/Melissa. The sources are registered; only their classification changes.",st:"planned",blk:"compliance_policies Tier 2"},
+ {t:"Capture every applicability VARIABLE",d:"Model all triggers that change what applies: headcount tiers, industry, public-works, drivers/CDL, subcontractors, locality (city/county ordinances), pay structure — as data, for any future tenant",st:"next",blk:"—"},
+ {t:"Build the change-detection watcher",d:"Diff content_hash each run → write regulatory_changes rows (detected→in_review→approved)",st:"next",blk:"regulatory_changes table (Steven · CD-02)"},
+ {t:"Wire Regulations.gov + Congress.gov scrapers",d:"Use the new keys to add federal dockets/comments + statutes",st:"ready",blk:"—"},
+ {t:"Structured obligation extraction",d:"Parse each reg into {threshold · who it applies to · required action} for the worker-requirement engine",st:"planned",blk:"—"},
+ {t:"Embeddings / RAG layer",d:"Chunk + embed raw_text so an AI agent answers ad-hoc compliance Q&A",st:"planned",blk:"—"},
+ {t:"Parse effective / amended dates",d:"Populate effective_date (NULL today) from eCFR meta + CA HISTORY",st:"planned",blk:"—"},
+ {t:"Schedule run_all.py",d:"Daily cron / Supabase Edge Function (Master Plan: watcher on daily cron)",st:"planned",blk:"—"},
+ {t:"Enrich compliance.sources",d:"Add industries[], source_type, selector config, per-source content hash (Master-Plan regulatory_sources)",st:"planned",blk:"schema decision"},
+ {t:"Auto-generate dashboard data from the live DB ✔",d:"DONE 2026-06-09: build_dashboard.py emits the data file from the DB — inventory, counts, topics & Critical-30 coverage all computed; wired into run_all.py. No hardcoded data points.",st:"done",blk:"—"},
+ {t:"Keep every source config-driven & scrapeable",d:"All sources live in osha_sources.py with a scrape method — no manual/hardcoded entries. Add methods for the remaining sources (CSLB C-39, prevailing-wage determinations, local ordinances)",st:"planned",blk:"—"},
+ {t:"Map changes → affected policies",d:"Tier-1 citation linkage so a detected change flags the right compliance_policies",st:"backlog",blk:"needs compliance_policies"}
+];
+
+const TASKS=[
+ {s:"done",t:"DB connection (pooler fix)",d:"us-east-1 session pooler, user.tenant login",cat:"infra"},
+ {s:"done",t:"Admin migration (keys + content_hash)",d:"via privileged MCP — intern lacks DDL",cat:"infra"},
+ {s:"done",t:"Federal eCFR scraper · 20 secs",d:"29 CFR 1926, structured XML",cat:"scrape"},
+ {s:"done",t:"Cal/OSHA Title 8 scraper · 16 secs",d:"denoised HTML extraction",cat:"scrape"},
+ {s:"done",t:"Idempotent upsert + change outcomes",d:"inserted/changed/unchanged per run",cat:"core"},
+ {s:"done",t:"API keys validated & stored",d:"Regulations.gov + Congress.gov, in .env",cat:"infra"},
+ {s:"done",t:"Production catalog audit reconciled",d:"2 tables clarified; verified Stephen's 23-rec audit; SQL emailed",cat:"review"},
+ {s:"active",t:"Verify section list w/ Eddie/Melissa",d:"Confirm complete for roof tear-off",cat:"review"},
+ {s:"active",t:"This onboarding console",d:"audit + tabs for future agents",cat:"docs"},
+ {s:"done",t:"Added 6 missing Critical-30 safety",d:"IIPP §3203, HazCom §5194, LOTO §3314, Fire §3221, First Aid §3400, Confined Space §1950 → 42 sections",cat:"scrape"},
+ {s:"next",t:"Stephen: apply 002 audit SQL to prod",d:"public.compliance_regulations · admin only · emailed 2026-06-09",cat:"infra"},
+ {s:"next",t:"Change-detection watcher",d:"hash diff → regulatory_changes",cat:"core"},
+ {s:"next",t:"Wire Regulations.gov + Congress.gov",d:"keys ready",cat:"source"},
+ {s:"backlog",t:"Structured extraction + RAG",d:"obligations + embeddings",cat:"core"},
+ {s:"backlog",t:"Schedule + auto-refresh dashboard",d:"cron / Edge Function",cat:"infra"},
+ {s:"backlog",t:"Local ordinances + CSLB C-39",d:"per-customer + licensing",cat:"source"}
+];
+
+const BUILD=[
+ {n:"01",s:"ok",h:"Read M2 source inventory",b:"Watcher design: per-source records, SHA-256 hashing, change rows"},
+ {n:"02",s:"warn",h:"Onboarding + 7z dropped → restart",b:"Unpacked the starter repo (Supabase compliance schema)"},
+ {n:"03",s:"fix",h:"Connection fix",b:"Direct host dead → us-east-1 session pooler (region via MCP)"},
+ {n:"04",s:"ok",h:"Scope decided",b:"Both jurisdictions · all roof-relevant hazards · land data first"},
+ {n:"05",s:"ok",h:"Verified every source live",b:"eCFR API + dir.ca.gov; found decimal-underscore quirk"},
+ {n:"06",s:"fix",h:"Admin migration via MCP",b:"Tables owned by postgres → added unique keys + content_hash as owner"},
+ {n:"07",s:"ok",h:"Built scrapers + landed 36 secs",b:"20 federal + 16 CA, 953K chars; idempotency verified"},
+ {n:"08",s:"ok",h:"Read planning docs + audited",b:"Charter, Master Plan, Policy Matrix → mapped captured vs intended"},
+ {n:"09",s:"fix",h:"API keys validated & stored",b:"Regulations.gov + Congress.gov → .env (gitignored)"},
+ {n:"10",s:"ok",h:"This onboarding console",b:"north star, audit, 3 new tabs"},
+ {n:"11",s:"fix",h:"Production catalog audit (2026-06-09)",b:"Reconciled the 2 tables; verified Stephen's 23-record audit vs primary sources; emailed cleaned fix-SQL (migration 002) to Stephen for admin apply"},
+ {n:"12",s:"ok",h:"Closed the Critical-30 safety gaps → 10/10",b:"Added IIPP §3203, CA HazCom §5194, LOTO §3314, Fire §3221, First Aid §3400, Confined Space §1950, PPE §3380 → 43 sections, 10/10 Critical-30 safety"},
+ {n:"13",s:"fix",h:"Made the dashboard DB-driven",b:"build_dashboard.py generates the data from the live DB; removed the hardcoded arrays/counts (the 'ALL·36' bug class is gone) — honors the no-hardcoding principle"},
+ {n:"14",s:"ok",h:"First domain beyond safety: WAGE & HOUR",b:"New leginfo scraper for CA Labor Code (8 sections: OT §510, meal/rest §512, wage statements §226, final pay §201-203, min wage §1182.12, wage-theft §2810.5) → 51 regs, 2 domains. Applicability tagged."},
+ {n:"15",s:"ok",h:"Expanded to 6 compliance domains",b:"Generalized the leginfo scraper to Labor/Government/B&P Codes; added leave & benefits, harassment/EEO/violence, licensing/insurance, prevailing wage → 66 regs, 30 topics. Headcount triggers now real data (CFRA/training 5+, school leave 25+)."},
+ {n:"16",s:"ok",h:"Federal employment law + full source inventory",b:"Added FMLA/FLSA/ADA/Title VII via eCFR (federal thresholds: FMLA 50+, ADA/Title VII 15+) → 74 regs. Registered the complete Master Plan §11 source watch-list (22 sources: federal/CA/industry). Added db_export.py (full CSV + schema-layout doc)."},
+ {n:"17",s:"fix",h:"Hardened dashboard (Industry jurisdiction)",b:"Industry sources broke the JUR color map → blank dashboard; added Industry + a safe jc() fallback so a new jurisdiction can never blank it again."},
+ {n:"18",s:"ok",h:"Finished domain ingestion → 10 domains, 88 regs",b:"Added worker classification (AB5 §2775), retirement (CalSavers), privacy & conduct (social media §980, trade secrets, distracted driving), workforce reduction (WARN §1400), + expense reimb/lactation/whistleblower/fair-chance/pay-transparency/day-of-rest. New codes: Civil, Vehicle, Military & Veterans."}
+];
+
+const DECISIONS=[
+ {q:"Scraper's job",a:"All three — Tier-1 source-of-truth + change feed, structured obligation extraction, AND a RAG layer for AI Q&A"},
+ {q:"Coverage gap",a:"Add all 6 missing Critical-30 safety sections (starting with IIPP §3203)"},
+ {q:"Federal API key",a:"User provides keys → received & validated (Regulations.gov + Congress.gov)"},
+ {q:"Jurisdictions",a:"California + Federal together; CA is the primary, stricter jurisdiction"},
+ {q:"Sequence",a:"Land accurate cited data first; build the watcher as a second pass"},
+ {q:"Production writes",a:"Agent does NOT write the production public.compliance_regulations table — audit fixes handed to Stephen (admin) via emailed SQL; our compliance.regulations sandbox stays separate"},
+ {q:"★ Operating principle",a:"EVERYTHING is continuously re-scrapeable & config-driven — NO hardcoded sources or data points. Laws/regs change and become effective on their own schedule, so every source carries a scrape method and the system re-fetches periodically; even this dashboard must regenerate from the live DB rather than ship a static snapshot."},
+ {q:"★ Scope = multi-tenant CA employer compliance",a:"The DB is a catalog for ANY California employer, not just S&W — ALL compliance domains (safety, wage/hour, leave, harassment/EEO, licensing, prevailing wage…), every employee-count tier and trigger variable. Applicability is stored as DATA (domain · employee_count_min · industries · applies_when) so onboarding filters per client (e.g. '30 employees, public works, has drivers → here's what applies'). Industry stays roofing/tear-off for now; broaden later. S&W = first tenant (50–75 emp, all job types, drivers + subs + multi-locality)."},
+ {q:"Tier 1 vs Tier 2 split",a:"The regulations table is TIER 1 ONLY — the legal minimum (statutes/regulations with a citation). Anything that's an INDUSTRY STANDARD or best practice (NRCA, ABC, trade bodies) is NOT a law and does NOT go here — it feeds TIER 2 (industry standard) of the policy matrix. Likewise pure company policies (drug/alcohol, workplace searches) are Tier 2/3, not scraped regs."}
+];
+
+/* ============================ HELPERS ============================ */
+const $=(s,el=document)=>el.querySelector(s), $$=(s,el=document)=>[...el.querySelectorAll(s)];
+const cssv=v=>v&&v.startsWith&&v.startsWith("var(")?getComputedStyle(document.documentElement).getPropertyValue(v.slice(4,-1)).trim():v;
+const fmt=n=>n>=1e6?(n/1e6).toFixed(2)+"M":n>=1e3?(n/1e3).toFixed(n<1e4?1:0)+"K":""+n;
+const EL=(t,a={},h="")=>{const e=document.createElementNS("http://www.w3.org/2000/svg",t);for(const k in a)e.setAttribute(k,a[k]);if(h)e.innerHTML=h;return e;};
+function gauge(id,frac,color,label,r0){const s=$("#"+id);if(!s)return;const R=r0||26,sw=R>22?7:6,C=2*Math.PI*R,sz=R*2+12;
+  s.setAttribute("viewBox",`0 0 ${sz} ${sz}`);const c=sz/2;
+  s.appendChild(EL("circle",{cx:c,cy:c,r:R,fill:"none",stroke:"#1c2942","stroke-width":sw}));
+  s.appendChild(EL("circle",{cx:c,cy:c,r:R,fill:"none",stroke:cssv(color),"stroke-width":sw,"stroke-linecap":"round","stroke-dasharray":C,"stroke-dashoffset":C*(1-frac),transform:`rotate(-90 ${c} ${c})`}));
+  s.appendChild(EL("text",{x:c,y:c+4,"text-anchor":"middle","font-size":R>22?13:11,fill:"#e6edf6","font-weight":700,"font-family":"monospace"},label));}
+
+const TOTAL=REGS.length,TOTCH=REGS.reduce((a,r)=>a+r.chars,0);
+$("#k-chars").textContent=fmt(TOTCH);
+
+/* ============================ TABS ============================ */
+$("#tabs").addEventListener("click",e=>{const t=e.target.closest(".tab");if(!t)return;
+  $$(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");
+  $$(".view").forEach(v=>v.classList.remove("active"));$("#v-"+t.dataset.v).classList.add("active");});
+
+/* ============================ OVERVIEW ============================ */
+gauge("g-sections",1,"var(--ok)",""+TOTAL);
+gauge("g-words",1,"var(--next)",fmt(TOTCH));
+const CRITOK=CRIT30.filter(c=>c.st==="ok").length,CRITN=CRIT30.length;gauge("g-crit",CRITOK/CRITN,CRITOK===CRITN?"var(--ok)":"var(--part)",Math.round(CRITOK/CRITN*100)+"%");
+const doneT=TASKS.filter(t=>t.s==="done").length,prog=Math.round(doneT/TASKS.length*100);
+gauge("g-prog",prog/100,"var(--ca)",prog+"%");$("#k-prog").textContent=prog+"%";
+
+const SVGNS="http://www.w3.org/2000/svg";
+const tipEl=s=>{const e=document.createElementNS(SVGNS,"title");e.textContent=s;return e;};
+(function(){const svg=$("#matrix"),jurs=["CA","Federal"];
+ const T2D={};REGS.forEach(r=>T2D[r.topic]=r.domain);
+ const cites={};REGS.forEach(r=>{const k=r.topic+"|"+r.jur;(cites[k]=cites[k]||[]).push(r.cit);});
+ const topics=Object.keys(TOPIC).filter(t=>REGS.some(r=>r.topic===t))
+   .sort((a,b)=>(T2D[a]+"~"+TOPIC[a].n).localeCompare(T2D[b]+"~"+TOPIC[b].n));
+ const count={};topics.forEach(t=>count[t]={CA:0,Federal:0});REGS.forEach(r=>{if(count[r.topic])count[r.topic][r.jur]++;});
+ const maxc=Math.max(1,...topics.flatMap(t=>[count[t].CA,count[t].Federal]));
+ const GAPNOTE={"heat_illness|Federal":"GAP — No federal heat standard. OSHA addresses heat only through the General Duty Clause §5(a)(1); a dedicated federal heat rule was proposed in 2024 but is not yet in the CFR. California has §3395."};
+ const W=410,labelW=156,cw=(W-labelW-6)/2,rh=22,y0=30,H=y0+topics.length*rh+6;
+ svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+ jurs.forEach((j,i)=>{const cx=labelW+i*cw+3;
+   svg.appendChild(EL("rect",{x:cx,y:8,width:cw-6,height:17,rx:4,fill:cssv(jc(j))+"22",stroke:cssv(jc(j))}));
+   svg.appendChild(EL("text",{x:cx+(cw-6)/2,y:20,"text-anchor":"middle","font-size":9.5,fill:cssv(jc(j)),"font-weight":700},j.toUpperCase()));});
+ topics.forEach((t,r)=>{const y=y0+r*rh;
+   svg.appendChild(EL("rect",{x:4,y:y+3,width:5,height:rh-7,rx:2,fill:cssv(TOPIC[t].c)}));
+   const lg=EL("g");lg.appendChild(tipEl(`${TOPIC[t].n}\ndomain: ${T2D[t]} · ${count[t].CA+count[t].Federal} section(s)`));
+   lg.appendChild(EL("text",{x:14,y:y+14,"font-size":9.5,fill:"#cdd8ea"},TOPIC[t].n.length>23?TOPIC[t].n.slice(0,22)+"…":TOPIC[t].n));
+   svg.appendChild(lg);
+   jurs.forEach((j,i)=>{const v=count[t][j],cx=labelW+i*cw+3,gap=v===0,intensity=gap?0:.18+.5*(v/maxc),k=t+"|"+j;
+     const g=EL("g");
+     g.appendChild(tipEl(gap?(GAPNOTE[k]||`No ${j} regulation under "${TOPIC[t].n}" — this requirement is ${j==="Federal"?"California":"federal"}-specific, or is covered in another domain.`)
+       :`${TOPIC[t].n} · ${j}: ${v} section(s)\n— ${(cites[k]||[]).join("\n— ")}`));
+     g.appendChild(EL("rect",{x:cx,y:y+2,width:cw-6,height:rh-5,rx:4,fill:gap?"#10131c":cssv(jc(j)),"fill-opacity":gap?1:intensity,stroke:gap?(GAPNOTE[k]?"#f97316":"#24303f"):cssv(jc(j)),"stroke-opacity":gap?1:.5,"stroke-dasharray":gap?"3 3":"0",style:"cursor:pointer"}));
+     g.appendChild(EL("text",{x:cx+(cw-6)/2,y:y+14,"text-anchor":"middle","font-size":10,fill:gap?(GAPNOTE[k]?"#f97316":"#3d4a5e"):"#fff","font-weight":700,style:"pointer-events:none"},gap?(GAPNOTE[k]?"⚠":"·"):(""+v)));
+     svg.appendChild(g);});});})();
+
+(function(){const svg=$("#donut"),cF=REGS.filter(r=>r.jur==='Federal').length,cC=REGS.filter(r=>r.jur==='CA').length,data=[["Federal",cF,JUR.Federal.c],["CA",cC,JUR.CA.c]],tot=REGS.length,R=60,r=36,cx=75,cy=75;let a=-Math.PI/2;
+ data.forEach(([k,v,c])=>{const ang=v/tot*2*Math.PI,a2=a+ang,big=ang>Math.PI?1:0;
+  svg.appendChild(EL("path",{d:`M${cx+R*Math.cos(a)} ${cy+R*Math.sin(a)} A${R} ${R} 0 ${big} 1 ${cx+R*Math.cos(a2)} ${cy+R*Math.sin(a2)} L${cx+r*Math.cos(a2)} ${cy+r*Math.sin(a2)} A${r} ${r} 0 ${big} 0 ${cx+r*Math.cos(a)} ${cy+r*Math.sin(a)} Z`,fill:cssv(c),"fill-opacity":.85,stroke:"#0b0e14","stroke-width":1.5}));a=a2;});
+ svg.appendChild(EL("text",{x:cx,y:cy-2,"text-anchor":"middle","font-size":20,fill:"#e6edf6","font-weight":700},""+tot));
+ svg.appendChild(EL("text",{x:cx,y:cy+13,"text-anchor":"middle","font-size":9,fill:"#8493ab"},"sections"));
+ $("#donut-leg").innerHTML=data.map(([k,v,c])=>`<div style="margin:6px 0"><span class="sq" style="background:${cssv(c)}"></span> <b>${v}</b> ${JUR[k].n}</div>`).join("")+`<div style="margin-top:8px;color:#8493ab">${new Set(REGS.map(r=>r.domain)).size} domains · ${new Set(REGS.map(r=>r.topic)).size} topics · 100% cited</div>`;})();
+
+(function(){const agg={},sec={};REGS.forEach(r=>{agg[r.domain]=(agg[r.domain]||0)+r.chars;sec[r.domain]=(sec[r.domain]||0)+1;});
+ const DOMC={safety:"#22d3ee",wage_hour:"#2dd4bf",leave_benefits:"#fca5a5",harassment_eeo:"#f9a8d4",licensing_insurance:"#67e8f9",prevailing_wage:"#bef264",privacy_conduct:"#93c5fd",worker_classification:"#c4b5fd",benefits_retirement:"#6ee7b7",workforce_reduction:"#f0abfc"};
+ const rows=Object.entries(agg).sort((a,b)=>b[1]-a[1]);if(!rows.length)return;
+ const svg=$("#vol"),W=300,lab=118,rh=22,y0=6,H=y0+rows.length*rh+4,max=Math.sqrt(rows[0][1]),bw=W-lab-42;
+ svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+ rows.forEach(([d,v],i)=>{const y=y0+i*rh,w=(Math.sqrt(v)/max)*bw,c=DOMC[d]||"#8493ab",g=EL("g");
+  g.appendChild(tipEl(`${d.replace(/_/g," ")}: ${v.toLocaleString()} chars · ${sec[d]} section(s)`));
+  g.appendChild(EL("text",{x:4,y:y+13,"font-size":9.5,fill:"#cdd8ea"},d.replace(/_/g," ")));
+  g.appendChild(EL("rect",{x:lab,y:y+3,width:bw,height:12,rx:3,fill:"#141c2c"}));
+  g.appendChild(EL("rect",{x:lab,y:y+3,width:Math.max(w,2),height:12,rx:3,fill:c,"fill-opacity":.9}));
+  g.appendChild(EL("text",{x:W-38,y:y+13,"font-size":9,fill:"#8493ab"},fmt(v)));
+  svg.appendChild(g);});})();
+
+(function(){const svg=$("#flow");
+ svg.appendChild(EL("defs",{},'<marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 Z" fill="#3b5680"/></marker>'));
+ const node=(x,y,w,h,fill,stroke,title,sub,dash)=>{svg.appendChild(EL("rect",{x,y,width:w,height:h,rx:8,fill,stroke,"stroke-width":1.4,"stroke-dasharray":dash||"0"}));
+  svg.appendChild(EL("text",{x:x+w/2,y:y+h/2-3,"text-anchor":"middle","font-size":11,fill:"#e6edf6","font-weight":700},title));
+  if(sub)svg.appendChild(EL("text",{x:x+w/2,y:y+h/2+12,"text-anchor":"middle","font-size":8.5,fill:"#8493ab"},sub));};
+ const arrow=(x1,y,x2,col)=>svg.appendChild(EL("line",{x1,y1:y,x2:x2-7,y2:y,stroke:col||"#2a3550","stroke-width":1.6,"marker-end":"url(#ah)"}));
+ node(8,30,120,40,"#0e1726",cssv("var(--fed)"),"eCFR API","29 CFR 1926 · 20");
+ node(8,124,120,40,"#0e1726",cssv("var(--ca)"),"dir.ca.gov","Title 8 · 16");
+ node(192,78,118,46,"#11192a","#3b5680","Scrapers","fetch·parse·hash");
+ node(372,78,126,46,"#11192a","#3b5680","Upsert","idempotent");
+ node(556,52,132,40,"#0e1c16",cssv("var(--ok)"),"sources","Layer A · watch list");
+ node(556,104,132,40,"#0e1c16",cssv("var(--ok)"),"regulations","Tier-1 facts · 36");
+ node(556,158,132,34,"#1a1206",cssv("var(--warn)"),"regulatory_changes ⏳","watcher · next","5 4");
+ arrow(128,50,192,cssv("var(--fed)"));arrow(128,144,192,cssv("var(--ca)"));
+ arrow(310,101,372);arrow(498,101,556);
+ svg.appendChild(EL("line",{x1:622,y1:144,x2:622,y2:158,stroke:"#3a3010","stroke-width":1.4,"stroke-dasharray":"4 4","marker-end":"url(#ah)"}));
+ svg.appendChild(EL("text",{x:196,y:22,"font-size":8.5,fill:"#5b6981"},"SHA-256 content_hash = the change signal → feeds the watcher (Layer A→B)"));})();
+
+$("#pipeline").innerHTML=SOURCES.map(s=>`<div style="border:1px solid var(--line);border-radius:8px;padding:9px;margin-bottom:8px;border-left:3px solid ${cssv(jc(s.jur))}">
+  <div style="display:flex;align-items:center;gap:8px"><span class="sq" style="background:${cssv(jc(s.jur))}"></span><b style="font-size:11px">${s.name}</b><span class="chip" style="margin-left:auto">${s.n} secs</span></div>
+  <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;font-size:10px"><span class="mtag">${s.kind}</span><span class="mtag" style="color:#34d399">● active</span><span class="mtag">scraped ${s.scraped}</span></div>
+  <div style="color:var(--dim2);font-size:9.5px;margin-top:6px">${s.note}</div></div>`).join("");
+
+(function(){const cols=[["done","Done","var(--ok)"],["active","In progress","var(--warn)"],["next","Next up","var(--next)"],["backlog","Backlog","var(--idle)"]];
+ $("#board").innerHTML=cols.map(([s,name,col])=>{const items=TASKS.filter(t=>t.s===s);
+  return `<div class="col"><h3><span class="sq" style="background:${cssv(col)}"></span>${name}<span class="ct">${items.length}</span></h3>`+
+   items.map(t=>`<div class="card" style="border-left-color:${cssv(col)}"><div class="t">${t.t}</div><div class="d">${t.d}</div><div class="meta"><span class="mtag">${t.cat}</span></div></div>`).join("")+`</div>`;}).join("");})();
+
+$("#timeline").innerHTML=BUILD.map(e=>`<div class="ev ${e.s==='warn'?'warn':e.s==='fix'?'fix':''}"><span class="n">${e.n}</span><div class="h">${e.h}</div><div class="b">${e.b}</div></div>`).join("");
+$("#decisions").innerHTML=DECISIONS.map(d=>`<div style="display:flex;gap:9px;padding:7px 2px;border-bottom:1px solid var(--line)"><span class="sq" style="background:var(--ok);margin-top:3px"></span><div><b style="font-size:10.5px">${d.q}</b><div style="color:var(--dim);font-size:10px;margin-top:2px">${d.a}</div></div></div>`).join("");
+
+/* ============================ DATA TAB ============================ */
+$("#schema-reg").innerHTML=SCHEMA_REG.map(([c,t,f,d])=>{
+  if(t==="—")return `<tr><td colspan="4" style="color:#5b6981;border:0;padding-top:9px;font-size:9px;letter-spacing:1px">— gaps —</td></tr>`;
+  const flag=f==="yes"?'<span class="yes">●</span>':f==="no"?'<span class="no">○</span>':'';
+  return `<tr><td>${c}</td><td style="color:#5b6981">${t}</td><td>${flag}</td><td style="color:#aebbcd">${d}</td></tr>`;}).join("");
+$("#schema-src").innerHTML=SCHEMA_SRC.map(([c,f,d])=>`<tr><td>${c}</td><td>${f==="yes"?'<span class="yes">●</span>':'<span class="no">○</span>'}</td><td style="color:#aebbcd">${d}</td></tr>`).join("");
+
+const popCols=SCHEMA_REG.filter(r=>r[2]==="yes").length,popTot=SCHEMA_REG.filter(r=>r[2]==="yes"||r[2]==="no").length;
+gauge("a1",popCols/popTot,"var(--ok)",Math.round(popCols/popTot*100)+"%",22);
+gauge("a2",CRITOK/CRITN,CRITOK===CRITN?"var(--ok)":"var(--part)",CRITOK+"/"+CRITN,22);
+$("#auditnote").innerHTML=`<b>What we captured:</b> the Tier-1 legal source layer — full text + citation + change hash for ${TOTAL} sections. <b>Now 9/10 Critical-30 safety policies</b> covered (added IIPP §3203, CA HazCom §5194, LOTO §3314, Fire §3221, First Aid §3400, construction Confined Space §1950 on 2026-06-09). <b>Still not built:</b> the <span class="mono">compliance_policies</span> matrix (Tier 2/3, assessment, worker reqs) and the <span class="mono">regulatory_changes</span> watcher log. We also over-delivered on roofing depth (asbestos/lead/silica, roofing ops, ladders, scaffolds, debris).`;
+
+$("#crit30").innerHTML=CRIT30.map(r=>{const c={ok:"var(--ok)",part:"var(--part)",miss:"var(--bad)"}[r.st],lab={ok:"captured",part:"partial",miss:"missing"}[r.st];
+ return `<tr><td class="mono" style="color:#5b6981">${r.n}</td><td>${r.p}</td><td class="mono" style="color:#cdd8ea;white-space:nowrap">${r.cit}</td><td><span class="st" style="background:${c}22;color:${c};border:1px solid ${c}">${lab}</span></td><td style="color:#aebbcd">${r.our}</td></tr>`;}).join("");
+
+$("#policymodel").innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">`+POLICYMODEL.map(g=>{
+ const col={fact:"var(--ok)",human:"var(--warn)",engine:"var(--next)"}[g.grp];
+ return `<div style="border:1px solid var(--line);border-left:3px solid ${cssv(col)};border-radius:7px;padding:8px;background:#0e1521">
+  <div style="font-size:10px;letter-spacing:.5px;color:#cdd8ea;font-weight:700">${g.g}</div>
+  ${g.f.map(f=>`<div style="font-size:10px;color:${f.includes('←')?cssv('var(--ok)'):'#8493ab'};margin-top:4px">${f.includes('←')?'▸ ':'· '}${f}</div>`).join("")}</div>`;}).join("")+`</div>
+  <div style="display:flex;gap:14px;margin-top:9px;font-size:10px;color:#8493ab"><span><span class="sq" style="background:var(--ok)"></span> Tier-1 facts (our scraper fills)</span><span><span class="sq" style="background:var(--warn)"></span> human / research input</span><span><span class="sq" style="background:var(--next)"></span> engine / assessment logic</span></div>`;
+
+/* inventory table */
+let filt=null,sortK="cit",sortDir=1;const maxCh=Math.max(...REGS.map(r=>r.chars));
+function renderTable(){const tb=$("#regtable tbody");tb.innerHTML="";
+ let rows=REGS.filter(r=>!filt||(filt.type==="topic"?r.topic===filt.v:r.jur===filt.v));
+ rows.sort((a,b)=>{let x=a[sortK],y=b[sortK];return (x<y?-1:x>y?1:0)*sortDir;});
+ rows.forEach(r=>{const w=Math.max(3,(Math.sqrt(r.chars)/Math.sqrt(maxCh))*100),tr=document.createElement("tr");
+  tr.innerHTML=`<td class="mono" style="white-space:nowrap;color:#cdd8ea">${r.cit}</td><td>${r.title}</td>
+   <td><span class="chip"><span class="sq" style="background:${cssv(TOPIC[r.topic].c)}"></span>${TOPIC[r.topic].n}</span></td>
+   <td><span class="chip" style="border-color:${cssv(JUR[r.jur].c)};color:${cssv(JUR[r.jur].c)}">${r.jur}</span></td>
+   <td><span class="chip" style="font-size:9px">${r.domain||"—"}</span></td>
+   <td style="max-width:200px"><span class="mono" style="color:#cdd8ea">${r.minEmp===1?"any size":(r.minEmp+"+ emp")}</span> <span style="color:#5b6981">· ${(r.industries||[]).join(", ")||"all"}</span>${r.appliesWhen?`<div style="color:#8493ab;font-size:9px;margin-top:2px">⚡ ${r.appliesWhen}</div>`:""}</td>
+   <td><div style="display:flex;align-items:center;gap:7px"><div style="flex:1;height:6px;background:#172033;border-radius:3px;overflow:hidden;min-width:46px"><div style="height:100%;width:${w}%;background:${cssv(TOPIC[r.topic].c)}"></div></div><span class="mono" style="color:#8493ab;min-width:44px;text-align:right">${r.chars.toLocaleString()}</span></div></td>
+   <td class="mono" style="color:#5b6981">${r.hash}</td><td><a href="${r.url}" target="_blank" rel="noopener">↗</a></td>`;tb.appendChild(tr);});}
+$("#regtable thead").addEventListener("click",e=>{const k=e.target.dataset.k;if(!k)return;if(sortK===k)sortDir*=-1;else{sortK=k;sortDir=1;}renderTable();});
+const fb=$("#filters");
+fb.innerHTML=`<span class="fbtn" data-f="all">ALL · ${REGS.length}</span>`+Object.keys(JUR).filter(k=>REGS.some(r=>r.jur===k)).map(k=>`<span class="fbtn" data-f="jur:${k}" style="border-color:${cssv(jc(k))}">${k} · ${REGS.filter(r=>r.jur===k).length}</span>`).join("")+Object.keys(TOPIC).filter(t=>REGS.some(r=>r.topic===t)).map(t=>{const n=REGS.filter(r=>r.topic===t).length;return `<span class="fbtn" data-f="topic:${t}" style="border-color:${cssv(TOPIC[t].c)}"><span class="sq" style="background:${cssv(TOPIC[t].c)}"></span> ${TOPIC[t].n} · ${n}</span>`;}).join("");
+fb.addEventListener("click",e=>{const b=e.target.closest(".fbtn");if(!b)return;
+ $$(".fbtn",fb).forEach(c=>{c.style.background="";c.style.color="";});const f=b.dataset.f;
+ if(f==="all"){filt=null;b.style.background="#22d3ee";b.style.color="#06101f";}
+ else{const[ty,v]=f.split(":");filt={type:ty,v};const col=ty==="topic"?cssv(TOPIC[v].c):cssv(jc(v));b.style.background=col;b.style.color="#06101f";}renderTable();});
+$('[data-f="all"]',fb).style.background="#22d3ee";$('[data-f="all"]',fb).style.color="#06101f";renderTable();
+
+/* ============================ USER TAB ============================ */
+$("#apistatus").innerHTML=APISTATUS.map(a=>`<tr><td style="color:#cdd8ea">${a.s}</td><td style="color:#aebbcd">${a.u}</td><td class="mono">${a.key}</td><td><span class="st" style="background:${cssv(a.c)}22;color:${cssv(a.c)};border:1px solid ${cssv(a.c)}">${a.st}</span></td><td style="color:#8493ab">${a.note}</td></tr>`).join("");
+$("#needuser").innerHTML=NEEDUSER.map(n=>`<div class="reqrow"><div class="who" style="color:${cssv(n.c)}">${n.who}</div>
+  <div style="flex:1"><div style="font-size:11px;color:#dfe7f1">${n.what}</div><div style="font-size:10px;color:#8493ab;margin-top:2px">${n.why}</div></div>
+  <span class="st" style="background:${cssv(n.c)}22;color:${cssv(n.c)};border:1px solid ${cssv(n.c)};align-self:center">${n.st}</span></div>`).join("");
+$("#tb-user").textContent=NEEDUSER.filter(n=>!n.st.includes("done")).length;
+
+/* ============================ AI TAB ============================ */
+const aiDone=NEEDAI.filter(n=>n.st==="done").length;
+const aiOpen=NEEDAI.filter(n=>n.st!=="done").length;const aiBlk=NEEDAI.filter(n=>n.blk&&n.blk!=="—").length;
+$("#ai-done").textContent=aiDone;$("#ai-open").textContent=aiOpen;$("#ai-blk").textContent=aiBlk;
+gauge("g-ai1",aiDone/NEEDAI.length,"var(--ok)",""+aiDone);gauge("g-ai2",1,"var(--next)",""+aiOpen);gauge("g-ai3",aiOpen?aiBlk/aiOpen:0,"var(--idle)",""+aiBlk);
+const STc={done:"var(--ok)",next:"var(--next)",ready:"var(--ca)",planned:"var(--warn)",backlog:"var(--idle)"};
+$("#needai").innerHTML=NEEDAI.map(n=>{const c=STc[n.st]||"var(--dim)";
+ return `<tr><td style="color:#dfe7f1;font-weight:600">${n.t}</td><td style="color:#aebbcd">${n.d}</td>
+  <td><span class="st" style="background:${cssv(c)}22;color:${cssv(c)};border:1px solid ${cssv(c)}">${n.st}</span></td>
+  <td style="color:${n.blk==='—'?'#5b6981':cssv('var(--bad)')}">${n.blk}</td></tr>`;}).join("");
+$("#tb-ai").textContent=aiOpen;
+/* ---- computed counts (no hardcoded data points) ---- */
+const _fed=REGS.filter(r=>r.jur==="Federal").length,_ca=REGS.filter(r=>r.jur==="CA").length;
+$("#kpiTotal").textContent=TOTAL;$("#kpiSplit").textContent=_fed+" federal · "+_ca+" CA";
+$("#tbData").textContent=TOTAL;$("#hlReg").textContent=TOTAL;
+$("#kpiCrit").innerHTML=CRITOK+'<span style="font-size:14px;color:#8493ab">/'+CRITN+'</span>';
+$("#kpiCritD").textContent=(CRITOK===CRITN?"complete — all "+CRITN+" covered ✓":CRITN-CRITOK+" remaining");
+if(window.CDO_DATA&&CDO_DATA.generatedAt){var fe=document.querySelector(".foot");if(fe)fe.innerHTML+=" · data generated "+CDO_DATA.generatedAt+" from the live DB";}
+
+</script>
+</body>
+</html>

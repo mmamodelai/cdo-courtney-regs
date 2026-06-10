@@ -15,7 +15,7 @@ import datetime as _dt
 
 from db import get_conn
 
-OUT = "../CDO-Project-Dashboard.data.js"
+OUT = "dashboard/CDO-Project-Dashboard.data.js"
 
 # Topic display registry (name + color). Curation only — pure presentation.
 TOPIC = {
