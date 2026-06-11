@@ -1,0 +1,4 @@
+Push-access test — 2026-06-11.
+
+If you can see this file on github.com/mmamodelai/cdo-courtney-regs, write access works.
+This file is throwaway — safe to delete anytime.
