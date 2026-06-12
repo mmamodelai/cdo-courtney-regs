@@ -13,7 +13,8 @@ scraped facts — and even their coverage status is computed against the DB.
 import json
 import datetime as _dt
 
-from db import get_conn
+import db as _db
+from explainers import EXPLAINERS, coverage_check
 
 OUT = "dashboard/CDO-Project-Dashboard.data.js"
 
@@ -74,6 +75,10 @@ TOPIC = {
     "trade_secrets":         {"n": "Trade Secrets",         "c": "#d4d4d8"},
     "distracted_driving":    {"n": "Distracted Driving",    "c": "#fdba74"},
     "warn_act":              {"n": "WARN Act (layoffs)",    "c": "#f9a8d4"},
+    # EDD programs + IWC wage orders
+    "pfl":        {"n": "Paid Family Leave (PFL)",  "c": "#fda4af"},
+    "sdi":        {"n": "Disability Ins. (SDI)",    "c": "#a5b4fc"},
+    "wage_order": {"n": "Wage Order 16 (constr.)",  "c": "#fbbf24"},
 }
 
 # Critical-30 SAFETY (Master Plan §12): policy -> the citation that satisfies it.
@@ -93,32 +98,24 @@ CRIT30_TARGETS = [
 
 
 def fetch():
-    with get_conn() as c, c.cursor() as cur:
-        cur.execute(
-            "select jurisdiction, citation, title, topic, length(raw_text), "
-            "       source_url, substr(content_hash,1,10), "
-            "       domain, employee_count_min, applies_when, industries "
-            "from compliance.regulations order by jurisdiction, citation"
-        )
-        regs = []
-        present = set()
-        for jur, cit, title, topic, chars, url, h, dom, emin, awhen, inds in cur.fetchall():
-            # DB title is '<citation> — <name>'; show just the name.
-            name = title.split(" — ", 1)[1] if " — " in title else title
-            regs.append({"jur": jur, "cit": cit, "title": name, "topic": topic,
-                         "chars": chars, "url": url, "hash": h,
-                         "domain": dom, "minEmp": emin, "appliesWhen": awhen,
-                         "industries": inds or []})
-            present.add(cit)
-
-        cur.execute(
-            "select jurisdiction, name, kind, url, last_scraped_at::date::text, notes, "
-            "  (select count(*) from compliance.regulations r where r.source_id = s.id) "
-            "from compliance.sources s order by id"
-        )
-        sources = [{"jur": j, "name": n, "kind": k, "url": u, "scraped": d,
-                    "note": notes, "n": cnt}
-                   for j, n, k, u, d, notes, cnt in cur.fetchall()]
+    regs = []
+    present = set()
+    for row in (_db._rpc("compliance_fetch_regulations", {}) or []):
+        title = row["title"]
+        name = title.split(" — ", 1)[1] if " — " in title else title
+        regs.append({"jur": row["jurisdiction"], "cit": row["citation"],
+                     "title": name, "topic": row["topic"],
+                     "chars": row["chars"] or 0, "url": row["source_url"],
+                     "hash": row["hash"],
+                     "domain": row["domain"], "minEmp": row["employee_count_min"],
+                     "appliesWhen": row["applies_when"],
+                     "industries": row["industries"] or [],
+                     "explainer": EXPLAINERS.get(row["citation"], "")})
+        present.add(row["citation"])
+    sources = [{"jur": r["jurisdiction"], "name": r["name"], "kind": r["kind"],
+                "url": r["url"], "scraped": r["scraped"],
+                "note": r["notes"], "n": r["reg_count"]}
+               for r in (_db._rpc("compliance_fetch_sources", {}) or [])]
     return regs, sources, present
 
 
@@ -135,12 +132,18 @@ def build_crit30(present):
 def main():
     regs, sources, present = fetch()
     crit30 = build_crit30(present)
+    tables = _db._rpc("compliance_table_counts", {}) or {}
+    missing = coverage_check(present)
+    if missing:
+        print(f"  !! {len(missing)} regulation(s) have NO explainer (write them in "
+              f"explainers.py): {', '.join(missing)}")
     # build timestamp is injected (Date.now is fine in plain Python here)
     data = {
         "regs": regs,
         "sources": sources,
         "topic": TOPIC,
         "crit30": crit30,
+        "tables": tables,
         "generatedAt": _dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
         "counts": {
             "total": len(regs),

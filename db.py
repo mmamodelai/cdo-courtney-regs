@@ -1,50 +1,73 @@
 """DB helper for the compliance scraper.
 
-Loads DATABASE_URL from .env and connects with the scoped `compliance_intern`
-role. Everything you touch lives in the `compliance` schema.
+Connects to Supabase via REST API using SECURITY DEFINER RPCs in the public
+schema. No direct Postgres connection needed — the anon key is sufficient
+because the RPCs run as the function owner and have full compliance schema access.
 """
 import os
-import psycopg2
-from contextlib import contextmanager
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
-DATABASE_URL = os.environ["DATABASE_URL"]
+
+_URL = os.environ["SUPABASE_URL"].rstrip("/")
+_KEY = os.environ["SUPABASE_ANON_KEY"]
+_HEADERS = {
+    "apikey": _KEY,
+    "Authorization": f"Bearer {_KEY}",
+    "Content-Type": "application/json",
+}
 
 
-@contextmanager
-def get_conn():
-    """Yields a connection; commits on success, rolls back on error."""
-    conn = psycopg2.connect(DATABASE_URL)
-    try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+def _rpc(fn: str, params: dict):
+    """Call a Supabase RPC function and return the parsed JSON response."""
+    r = requests.post(f"{_URL}/rest/v1/rpc/{fn}", json=params, headers=_HEADERS, timeout=30)
+    r.raise_for_status()
+    return r.json()
 
 
 def list_tables():
-    with get_conn() as c, c.cursor() as cur:
-        cur.execute(
-            "select table_name from information_schema.tables "
-            "where table_schema = 'compliance' order by 1"
-        )
-        return [r[0] for r in cur.fetchall()]
+    return _rpc("compliance_list_tables", {}) or []
 
 
-def columns(table: str):
-    """Introspect a compliance table's columns — handy for Claude Code."""
-    with get_conn() as c, c.cursor() as cur:
-        cur.execute(
-            "select column_name, data_type from information_schema.columns "
-            "where table_schema='compliance' and table_name=%s order by ordinal_position",
-            (table,),
-        )
-        return cur.fetchall()
+def check_setup():
+    return _rpc("compliance_setup_check", {})
+
+
+def upsert_source(source: dict) -> int:
+    return _rpc("compliance_upsert_source", {
+        "p_name": source["name"],
+        "p_url": source["url"],
+        "p_kind": source["kind"],
+        "p_jurisdiction": source["jurisdiction"],
+        "p_notes": source.get("notes"),
+    })
+
+
+def upsert_regulation(reg: dict) -> str:
+    import datetime as _dt
+    last_reviewed = reg.get("last_reviewed", _dt.date.today())
+    if isinstance(last_reviewed, _dt.date):
+        last_reviewed = last_reviewed.isoformat()
+    return _rpc("compliance_upsert_regulation", {
+        "p_jurisdiction": reg["jurisdiction"],
+        "p_topic": reg["topic"],
+        "p_title": reg["title"],
+        "p_summary": reg.get("summary", ""),
+        "p_citation": reg["citation"],
+        "p_source_url": reg["source_url"],
+        "p_status": reg.get("status", "active"),
+        "p_raw_text": reg.get("raw_text", ""),
+        "p_content_hash": reg.get("content_hash", ""),
+        "p_source_id": reg["source_id"],
+        "p_last_reviewed": last_reviewed,
+        "p_domain": reg.get("domain", "safety"),
+        "p_employee_count_min": reg.get("employee_count_min", 1),
+        "p_applies_when": reg.get("applies_when"),
+        "p_industries": reg.get("industries", ["all"]),
+    })
 
 
 if __name__ == "__main__":
     print("compliance tables:", list_tables())
+    print("migration check:", check_setup())

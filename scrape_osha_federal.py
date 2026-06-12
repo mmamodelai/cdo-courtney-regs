@@ -13,22 +13,23 @@ from osha_common import (
 )
 from osha_sources import FEDERAL_SOURCE, FEDERAL_SECTIONS
 
-ECFR_VERSIONS = "https://www.ecfr.gov/api/versioner/v1/versions/title-29.json"
-ECFR_FULL = "https://www.ecfr.gov/api/versioner/v1/full/{date}/title-29.xml"
+ECFR_VERSIONS = "https://www.ecfr.gov/api/versioner/v1/versions/title-{title}.json"
+ECFR_FULL = "https://www.ecfr.gov/api/versioner/v1/full/{date}/title-{title}.xml"
 # Human-citable canonical URL (works in a browser; the API URL above is the fetch).
-SECTION_URL = "https://www.ecfr.gov/current/title-29/section-{sec}"
+SECTION_URL = "https://www.ecfr.gov/current/title-{title}/section-{sec}"
 
 
-def latest_issue_date() -> str:
-    """Ask eCFR for the most recent issue date of Title 29 (YYYY-MM-DD)."""
-    meta = http_get(ECFR_VERSIONS).json()["meta"]
+def latest_issue_date(title: int = 29) -> str:
+    """Ask eCFR for the most recent issue date of a CFR title (YYYY-MM-DD)."""
+    meta = http_get(ECFR_VERSIONS.format(title=title)).json()["meta"]
     return meta["latest_issue_date"]
 
 
-def fetch_section(date: str, section: str):
-    """Return (heading, full_text) for one 29 CFR section, or None if missing."""
+def fetch_section(date: str, section: str, title: int = 29):
+    """Return (heading, full_text) for one CFR section, or None if missing."""
     part = section.split(".")[0]  # "1926.501" -> "1926"
-    r = http_get(ECFR_FULL.format(date=date), params={"part": part, "section": section})
+    r = http_get(ECFR_FULL.format(date=date, title=title),
+                 params={"part": part, "section": section})
     root = etree.fromstring(r.content)
     heading = (root.findtext(".//HEAD") or "").strip()
     if not heading:
@@ -63,7 +64,7 @@ def main():
             "topic": topic,
             "title": f"29 CFR § {section} — {name}",
             "citation": f"29 CFR § {section}",
-            "source_url": SECTION_URL.format(sec=section),
+            "source_url": SECTION_URL.format(title=29, sec=section),
             "source_id": source_id,
             "raw_text": text,
         })

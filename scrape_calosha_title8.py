@@ -80,6 +80,15 @@ def main():
             print(f"  ! {section}: text too short ({len(text)} chars) — skipped")
             tally["missing"] += 1
             continue
+        # Repeal guard (2026-06-10): dir.ca.gov keeps shell pages for repealed
+        # sections — '§1516. Eye and Face Protection. (Repealed)' + HISTORY only.
+        # A repealed section is NOT law; never store it as a Tier-1 fact.
+        if re.match(rf"§?\s*{re.escape(section)}\.[^\n]{{0,120}}[(\[]\s*Repealed\s*[)\]]",
+                    text, re.I):
+            print(f"  !! {section}: REPEALED on dir.ca.gov — skipped. "
+                  f"Remove it from osha_sources.py and find the current standard.")
+            tally["missing"] += 1
+            continue
         outcome = upsert_regulation({
             "jurisdiction": "CA",
             "topic": topic,

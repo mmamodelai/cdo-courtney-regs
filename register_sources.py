@@ -1,16 +1,11 @@
 """Register the FULL regulatory source watch-list (Master Plan §11) in compliance.sources.
 
-This is the "Verified regulatory-source inventory" deliverable (M2): every official
-source the watcher should monitor — federal, California, and industry — with its URL
-and watch method. Sources we already scrape full text from are status='active';
-the rest are status='registered' (watch-list / future scrape or watcher-only feed).
-
 Idempotent: keyed on url. Does NOT clobber the status / last_scraped_at of the
 sources our scrapers already manage.
 
 Run:  python register_sources.py
 """
-from db import get_conn
+import db as _db
 
 # (name, url, kind, jurisdiction, status, notes)
 SOURCES = [
@@ -40,14 +35,14 @@ SOURCES = [
      "scrape", "CA", "active", "Wage/hour, leave, harassment, licensing, prevailing wage — full statute text scraped."),
     ("Cal/OSHA Standards Board — rulemaking", "https://www.dir.ca.gov/oshsb/oshsb.html",
      "scrape", "CA", "registered", "Proposed/approved CA safety standards + hearing agendas (leading indicator of change)."),
-    ("CA EDD — news & benefit amounts", "https://edd.ca.gov/en/about_edd/news_releases/",
-     "scrape", "CA", "registered", "PFL / SDI benefit amounts & news (UIC sections leginfo won't serve cleanly)."),
+    ("CA EDD — PFL & SDI (benefit amounts & rates)", "https://edd.ca.gov/en/disability/",
+     "scrape", "CA", "active", "PFL / SDI program rules, benefit amounts & contribution rates (UIC sections leginfo won't serve cleanly)."),
     ("CA Civil Rights Department (CRD / DFEH)", "https://calcivilrights.ca.gov/news",
      "scrape", "CA", "registered", "FEHA / CFRA / PDL regulations & guidance."),
     ("CalChamber — HR Watchdog", "https://www.calchamber.com/hrwatchdog",
      "subscription", "CA", "registered", "PAID feed — no scraping; secondary signal only."),
     ("IWC Wage Orders (Wage Order 16 — construction)", "https://www.dir.ca.gov/iwc/WageOrderIndustries.htm",
-     "scrape", "CA", "registered", "Wage Order 16 governs on-site construction (meal/rest/OT for roofing). PDF — needs PDF parse."),
+     "scrape", "CA", "active", "Wage Order 16 governs on-site construction (meal/rest/OT for roofing). Scraped from the IWCArticle16.pdf via pdfplumber."),
     ("CSLB — Contractors State License Board", "https://www.cslb.ca.gov",
      "scrape", "CA", "registered", "C-39 roofing license + bond requirements & disciplinary rule changes."),
     # ---------- INDUSTRY ----------
@@ -66,28 +61,21 @@ SOURCES = [
 
 def main():
     inserted = updated = 0
-    with get_conn() as c, c.cursor() as cur:
-        for name, url, kind, jur, status, notes in SOURCES:
-            # Preserve status/last_scraped_at for sources our scrapers manage:
-            # set status only on INSERT; on conflict refresh metadata but keep status.
-            cur.execute("select 1 from compliance.sources where url=%s", (url,))
-            exists = cur.fetchone() is not None
-            cur.execute(
-                "insert into compliance.sources (name, url, kind, jurisdiction, status, notes) "
-                "values (%s,%s,%s,%s,%s,%s) "
-                "on conflict (url) do update set name=excluded.name, kind=excluded.kind, "
-                "  jurisdiction=excluded.jurisdiction, notes=excluded.notes",
-                (name, url, kind, jur, status, notes),
-            )
-            updated += exists
-            inserted += not exists
+    for name, url, kind, jur, status, notes in SOURCES:
+        result = _db._rpc("compliance_register_source", {
+            "p_name": name, "p_url": url, "p_kind": kind,
+            "p_jurisdiction": jur, "p_status": status, "p_notes": notes,
+        })
+        if result == "inserted":
+            inserted += 1
+        else:
+            updated += 1
     print(f"Source watch-list registered: {inserted} new, {updated} refreshed.")
-    with get_conn() as c, c.cursor() as cur:
-        cur.execute("select jurisdiction, count(*), "
-                    "count(*) filter (where status='active') "
-                    "from compliance.sources group by 1 order by 1")
-        for jur, n, active in cur.fetchall():
-            print(f"  {jur:9} {n} sources ({active} active / {n-active} registered)")
+    rows = _db._rpc("compliance_source_summary", {})
+    if rows:
+        for row in rows:
+            jur, n, active = row["jurisdiction"], row["total"], row["active"]
+            print(f"  {jur:9} {n} sources ({active} active / {n - active} registered)")
 
 
 if __name__ == "__main__":

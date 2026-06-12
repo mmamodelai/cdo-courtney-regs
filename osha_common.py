@@ -11,7 +11,7 @@ import datetime as _dt
 
 import requests
 
-from db import get_conn
+import db as _db
 
 UA = "CDO-compliance-scraper/1.0 (+https://github.com/mmamodelai/CDO-compliance-scraper; team@mmamodel.ai)"
 HEADERS = {"User-Agent": UA}
@@ -66,40 +66,16 @@ class MigrationMissing(RuntimeError):
 
 
 def setup_schema():
-    with get_conn() as c, c.cursor() as cur:
-        cur.execute(
-            "select 1 from pg_constraint where conname = 'regulations_citation_key'"
-        )
-        has_key = cur.fetchone() is not None
-        cur.execute(
-            "select 1 from information_schema.columns "
-            "where table_schema='compliance' and table_name='regulations' "
-            "and column_name='content_hash'"
-        )
-        has_col = cur.fetchone() is not None
-    if not (has_key and has_col):
+    if not _db.check_setup():
         raise MigrationMissing(
             "Required schema is missing. An admin must apply "
-            "migrations/001_watcher_keys.sql once (compliance_intern lacks DDL "
-            "rights on the postgres-owned tables)."
+            "migrations/001_watcher_keys.sql once."
         )
 
 
 def upsert_source(source: dict) -> int:
     """Insert/update a compliance.sources row keyed on url; return its id."""
-    with get_conn() as c, c.cursor() as cur:
-        cur.execute(
-            "insert into compliance.sources "
-            "  (name, url, kind, jurisdiction, status, notes, last_scraped_at) "
-            "values (%(name)s, %(url)s, %(kind)s, %(jurisdiction)s, 'active', %(notes)s, now()) "
-            "on conflict (url) do update set "
-            "  name = excluded.name, kind = excluded.kind, "
-            "  jurisdiction = excluded.jurisdiction, notes = excluded.notes, "
-            "  last_scraped_at = now() "
-            "returning id",
-            {"notes": None, **source},
-        )
-        return cur.fetchone()[0]
+    return _db.upsert_source({"notes": None, **source})
 
 
 # ---------------------------------------------------------------------------
@@ -137,6 +113,8 @@ TOPIC_DOMAIN = {  # every current topic is a safety standard
     "ab5": "worker_classification", "calsavers": "benefits_retirement",
     "social_media": "privacy_conduct", "trade_secrets": "privacy_conduct",
     "distracted_driving": "privacy_conduct", "warn_act": "workforce_reduction",
+    # EDD-administered programs + IWC wage orders
+    "pfl": "leave_benefits", "sdi": "leave_benefits", "wage_order": "wage_hour",
 }
 
 # Trigger condition keyed by a citation fragment; absence => generally applicable.
@@ -158,10 +136,11 @@ APPLIES_WHEN = {
 
 
 def _industries_for(citation: str):
-    """29 CFR 1926 + CA Title 8 §1500–1999 = construction; GISO (3000s/5000s) = all."""
+    """29 CFR 1926 + CA Title 8 §1500–1999 = construction; 29 CFR 1910 (general
+    industry) + GISO (3000s/5000s) = all."""
     m = re.search(r"(\d+)", citation)
     if citation.startswith("29 CFR"):
-        return ["construction"]
+        return ["all"] if "1910." in citation else ["construction"]
     if m and 1500 <= int(m.group(1)) < 2000:
         return ["construction"]
     return ["all"]
@@ -193,33 +172,4 @@ def upsert_regulation(reg: dict) -> str:
     reg.setdefault("applies_when", _applies_when_for(reg["citation"]))
     reg["last_reviewed"] = _dt.date.today()
 
-    with get_conn() as c, c.cursor() as cur:
-        cur.execute(
-            "select content_hash from compliance.regulations where citation = %s",
-            (reg["citation"],),
-        )
-        row = cur.fetchone()
-        outcome = "inserted" if row is None else (
-            "unchanged" if row[0] == reg["content_hash"] else "changed"
-        )
-        cur.execute(
-            "insert into compliance.regulations "
-            "  (jurisdiction, topic, title, summary, citation, source_url, "
-            "   status, raw_text, content_hash, source_id, last_reviewed, "
-            "   domain, employee_count_min, applies_when, industries, updated_at) "
-            "values (%(jurisdiction)s, %(topic)s, %(title)s, %(summary)s, %(citation)s, "
-            "  %(source_url)s, %(status)s, %(raw_text)s, %(content_hash)s, %(source_id)s, "
-            "  %(last_reviewed)s, %(domain)s, %(employee_count_min)s, %(applies_when)s, "
-            "  %(industries)s, now()) "
-            "on conflict (citation) do update set "
-            "  jurisdiction = excluded.jurisdiction, topic = excluded.topic, "
-            "  title = excluded.title, summary = excluded.summary, "
-            "  source_url = excluded.source_url, status = excluded.status, "
-            "  raw_text = excluded.raw_text, content_hash = excluded.content_hash, "
-            "  source_id = excluded.source_id, last_reviewed = excluded.last_reviewed, "
-            "  domain = excluded.domain, employee_count_min = excluded.employee_count_min, "
-            "  applies_when = excluded.applies_when, industries = excluded.industries, "
-            "  updated_at = now()",
-            reg,
-        )
-        return outcome
+    return _db.upsert_regulation(reg)

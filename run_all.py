@@ -11,6 +11,8 @@ import scrape_osha_federal
 import scrape_fed_employment
 import scrape_calosha_title8
 import scrape_ca_statutes
+import scrape_ca_edd
+import scrape_iwc_wage_order
 import build_dashboard
 import db_export
 
@@ -19,13 +21,17 @@ def main():
     print("=" * 70)
     register_sources.main()            # the full source watch-list (M2 inventory)
     print("=" * 70)
-    scrape_osha_federal.main()         # 29 CFR 1926 — construction safety
+    scrape_osha_federal.main()         # 29 CFR 1926 + incorporated 1910 standards
     print("=" * 70)
-    scrape_fed_employment.main()       # 29 CFR — FMLA / FLSA / ADA / Title VII
+    scrape_fed_employment.main()       # 29 CFR FMLA/FLSA/ADA/Title VII + 20 CFR USERRA
     print("=" * 70)
     scrape_calosha_title8.main()       # CA Title 8 — safety
     print("=" * 70)
     scrape_ca_statutes.main()          # CA Labor/Gov/B&P — wage, leave, harassment, licensing
+    print("=" * 70)
+    scrape_ca_edd.main()               # EDD — PFL & SDI (UIC not servable via leginfo)
+    print("=" * 70)
+    scrape_iwc_wage_order.main()       # IWC Wage Order 16 — on-site construction (PDF)
     print("=" * 70)
     # Regenerate the dashboard data + DB exports from the live DB so they're never
     # stale, hand-maintained snapshots (operating principle: no hardcoded data).

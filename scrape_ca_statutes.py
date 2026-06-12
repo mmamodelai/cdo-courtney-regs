@@ -84,10 +84,13 @@ CA_STATUTES = [
     # ---- WAGE & HOUR (additional employer obligations) ----
     ("LAB", "2802",    "wage_hour", "expense_reimbursement", "Reimbursement of necessary business expenses",        None, 1),
     ("LAB", "551",     "wage_hour", "day_of_rest",           "Day of rest — one day's rest in seven",               None, 1),
+    ("LAB", "552",     "wage_hour", "day_of_rest",           "Day of rest — employer may not cause work more than 6 days in 7", None, 1),
     ("LAB", "432.3",   "wage_hour", "pay_transparency",      "Pay scale disclosure / pay transparency",             "pay scale in job postings: 15+ employees", 15),
     ("LAB", "1198.5",  "wage_hour", "personnel_records",     "Employee right to inspect personnel records",         None, 1),
     # ---- LEAVE & BENEFITS (additional) ----
-    ("LAB", "1030",    "leave_benefits", "lactation",      "Lactation accommodation — break time & private space",   None, 1),
+    ("LAB", "1030",    "leave_benefits", "lactation",      "Lactation accommodation — break time",                    None, 1),
+    ("LAB", "1031",    "leave_benefits", "lactation",      "Lactation accommodation — location requirements",         None, 1),
+    ("LAB", "1034",    "leave_benefits", "lactation",      "Lactation room/space requirements (SB 142)",              None, 1),
     ("MVC", "394",     "leave_benefits", "military_leave", "Military leave & protection from discrimination (CA)",   "employees in military service", 1),
     # ---- HARASSMENT / EEO (additional) ----
     ("GOV", "12952",   "harassment_eeo", "fair_chance",   "Fair Chance Act — criminal history (ban-the-box)",       "employers with 5+ employees", 5),
@@ -101,7 +104,10 @@ CA_STATUTES = [
     ("CIV", "3426.1",  "privacy_conduct", "trade_secrets",      "Trade secrets — Uniform Trade Secrets Act (definitions)", None, 1),
     ("VEH", "23123.5", "privacy_conduct", "distracted_driving", "Handheld phone / texting while driving prohibited",     "employees who drive for work", 1),
     # ---- WORKFORCE REDUCTION ----
-    ("LAB", "1400",    "workforce_reduction", "warn_act", "California WARN Act — mass layoff/closure notice",        "75+ employees", 75),
+    ("LAB", "1400",    "workforce_reduction", "warn_act", "Cal/WARN Act — short title",                              "75+ employees", 75),
+    ("LAB", "1400.5",  "workforce_reduction", "warn_act", "Cal/WARN — definitions (covered establishment, mass layoff)", "75+ employees", 75),
+    ("LAB", "1401",    "workforce_reduction", "warn_act", "Cal/WARN — 60-day written notice before mass layoff/closure", "75+ employees", 75),
+    ("LAB", "1402",    "workforce_reduction", "warn_act", "Cal/WARN — employer liability for failure to give notice",    "75+ employees", 75),
 ]
 
 

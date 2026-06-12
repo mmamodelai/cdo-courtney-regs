@@ -118,8 +118,8 @@
   <div class="pills">
     <span class="pill"><span class="dot blink" style="background:#34d399"></span> DB <b>connected</b></span>
     <span class="pill">Supabase <b>compliance</b></span>
-    <span class="pill">36 sections</span>
-    <span class="pill">updated <b>2026-06-08</b></span>
+    <span class="pill"><span id="pillSections">—</span> sections</span>
+    <span class="pill">updated <b id="pillUpdated">—</b></span>
   </div>
 </header>
 
@@ -204,23 +204,23 @@
   <div class="grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
     <div class="hl"><div class="k">Supabase project</div><div class="v">CDO · <span class="mono">ruuufhxrubeckbcvwvcq</span> · us-east-1</div></div>
     <div class="hl"><div class="k">Schema</div><div class="v">compliance <span style="color:#5b6981">(scoped, isolated)</span></div></div>
-    <div class="hl"><div class="k">Tables written</div><div class="v"><span class="yes">sources (2)</span> · <span class="yes">regulations (<span id="hlReg">—</span>)</span></div></div>
-    <div class="hl"><div class="k">Tables empty</div><div class="v" style="color:#8493ab">leave_rules (0) · documents (0)</div></div>
+    <div class="hl"><div class="k">Tables written</div><div class="v"><span class="yes">sources (<span id="hlSrc">—</span>)</span> · <span class="yes">regulations (<span id="hlReg">—</span>)</span></div></div>
+    <div class="hl"><div class="k">Tables empty</div><div class="v" style="color:#8493ab">leave_rules (<span id="hlLeave">—</span>) · documents (<span id="hlDocs">—</span>)</div></div>
   </div>
 
   <div class="panel" style="margin-bottom:12px;border-color:#3a2a08;background:linear-gradient(180deg,#15110a,#0f1420)">
     <h2 style="color:#f5b301">⚠ Two regulation tables — do not confuse them <span class="tag">critical for any agent touching this data</span></h2>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div style="border:1px solid var(--line);border-left:3px solid var(--ok);border-radius:7px;padding:9px;background:#0e1521">
-        <b style="color:#34d399">compliance.regulations</b> <span class="chip" style="margin-left:4px">our sandbox · 36</span>
+        <b style="color:#34d399">compliance.regulations</b> <span class="chip" style="margin-left:4px">our sandbox · <span id="chipSandbox">—</span></span>
         <div style="color:#aebbcd;font-size:10px;margin-top:5px">Full-text scraped legal sections + content_hash. The <span class="mono">compliance_intern</span> login writes here. <b>This is the table this dashboard reports on.</b></div>
       </div>
       <div style="border:1px solid var(--line);border-left:3px solid var(--fed);border-radius:7px;padding:9px;background:#0e1521">
-        <b style="color:#3b82f6">public.compliance_regulations</b> <span class="chip" style="margin-left:4px">production app · 23→26</span>
-        <div style="color:#aebbcd;font-size:10px;margin-top:5px">The LIVE compliance engine's requirement catalog (certs / licenses / written plans). Intern login has <b>NO grants</b> — admin only. Audited 2026-06-09; fix SQL emailed to Stephen.</div>
+        <b style="color:#3b82f6">public.compliance_regulations</b> <span class="chip" style="margin-left:4px">production app · <span id="chipProd">—</span></span>
+        <div style="color:#aebbcd;font-size:10px;margin-top:5px">The LIVE compliance engine's requirement catalog (certs / licenses / written plans). Admin-only writes. Audited 2026-06-09; migration 002 APPLIED 2026-06-10 (2 citation fixes + silica / recordkeeping / prevailing-wage added).</div>
       </div>
     </div>
-    <div class="note">Stephen's 2026-06-09 brief audited the <b>production</b> table and found 2 citation errors (HazCom 1910.1200→1926.59/§5194; Confined Space 1910.146→Art. 37 §§1950–1962) + 3 missing regs (<b>silica</b>, injury recordkeeping, prevailing wage). Verified + cleaned SQL (<span class="mono">migrations/002</span>) emailed to him for admin apply. Note: our sandbox <b>already holds the "missing" silica</b> (§1532.3 + §1926.1153) as full cited text.</div>
+    <div class="note">Stephen's 2026-06-09 brief audited the <b>production</b> table and found 2 citation errors (HazCom 1910.1200→1926.59/§5194; Confined Space 1910.146→Art. 37 §§1950–1962) + 3 missing regs (<b>silica</b>, injury recordkeeping, prevailing wage). <b>Migration 002 was applied to production 2026-06-10</b> — both citations fixed, all 3 regs added, fall-protection records enriched with §1730/§1731. Our sandbox holds the silica standards (§1532.3 + §1926.1153) as full cited text.</div>
   </div>
 
   <div class="panel" style="margin-bottom:12px">
@@ -295,7 +295,7 @@
   <div class="note" style="margin-top:10px">Per your call, this scraper's job is <b>all three</b>: (1) Tier-1 source-of-truth + change feed, (2) structured obligation extraction for the worker-requirement engine, and (3) an embeddings/RAG layer for AI Q&A. Items 1–2 of the data layer are done; the rest are queued above.</div>
 </section>
 
-<div class="foot">CDO Compliance Brain · roof tear-off vertical · static snapshot generated 2026-06-08 from live <span style="color:#8493ab">compliance.regulations</span> · refresh by re-running <span style="color:#8493ab">python run_all.py</span> then regenerating · onboarding doc for future agents</div>
+<div class="foot">CDO Compliance Brain · roof tear-off vertical · generated from live <span style="color:#8493ab">compliance.regulations</span> · refresh by re-running <span style="color:#8493ab">python run_all.py</span> · onboarding doc for future agents</div>
 </div>
 
 <script src="CDO-Project-Dashboard.data.js"></script>
@@ -361,7 +361,7 @@ const APISTATUS=[
 ];
 
 const NEEDUSER=[
- {who:"Stephen",what:"Apply migration 002 to PRODUCTION public.compliance_regulations — 2 citation fixes + 3 new regs (silica, injury recordkeeping, prevailing wage) + fall-protection enrichment",st:"emailed ✓",c:"var(--next)",why:"Production write; the intern login has no grants on this table. Emailed the verified SQL 2026-06-09 — awaiting admin run in the Supabase SQL Editor"},
+ {who:"Stephen",what:"Migration 002 on PRODUCTION public.compliance_regulations — 2 citation fixes + 3 new regs (silica, injury recordkeeping, prevailing wage) + fall-protection enrichment",st:"done ✓",c:"var(--ok)",why:"APPLIED 2026-06-10 via admin MCP (per Steven's call) — production now 26 rows; verify in the app"},
  {who:"Stephen / Legal",what:"Before flag logic: silica §1926.1153 Table-1 task-matching + add a jobs.is_public_works flag for prevailing wage",st:"open",c:"var(--warn)",why:"Audit data is safe to load, but these downstream rules need legal/source review before coding"},
  {who:"Eddie + Melissa",what:"Validate the roof-tear-off section list is complete & sign off the Tier-1 citations",st:"open",c:"var(--warn)",why:"Charter: facts must be human-confirmed before go-live"},
  {who:"Eddie + Melissa",what:"Define Tier 2 (industry standard) and Tier 3 (excellence) per policy",st:"blocking",c:"var(--bad)",why:"Not scrapable — research-backed judgment calls the matrix needs"},
@@ -377,14 +377,14 @@ const NEEDAI=[
  {t:"Add the 6 missing Critical-30 safety sections ✔",d:"DONE 2026-06-09: IIPP §3203, CA HazCom §5194, LOTO §3314, Fire §3221, First Aid §3400, construction Confined Space §1950 (+PPE §3380 → 10/10)",st:"done",blk:"—"},
  {t:"Model applicability as data ✔",d:"DONE 2026-06-09: added domain · employee_count_min · industries · applies_when to every reg, so onboarding can filter per client (e.g. '30 employees, has drivers → what applies')",st:"done",blk:"—"},
  {t:"INGEST ALL COMPLIANCE DOMAINS for a CA employer ✔",d:"DONE — 10 domains live (88 regs, federal+CA): safety, wage/hour, leave & benefits, harassment/EEO, licensing/insurance, prevailing wage, worker classification (AB5), retirement (CalSavers), privacy & conduct, workforce reduction (WARN). Every Critical-30 statutory item covered + many beyond. The specific leftovers are now their own tasks below.",st:"done",blk:"—"},
- {t:"GAP — PFL & SDI (paid family leave / disability)",d:"PROBLEM: these live in the CA Unemployment Insurance Code (UIC §3300+, §2601+), and leginfo's section view returns no codeLawSectionNoHead container for UIC (same quirk that blocked §226.7) — so our statute scraper can't read them. WHAT TO DO: scrape EDD instead (edd.ca.gov benefit-amount pages) with a small new parser — PFL max weekly benefit, SDI rate, wage-replacement %. Refresh annually.",st:"next",blk:"—"},
- {t:"GAP — IWC Wage Order 16 (construction)",d:"PROBLEM: Wage Order 16 sets on-site construction meal/rest/overtime/reporting-time pay (directly governs roofing crews), but it's published as a PDF, not HTML/statute, so neither the leginfo nor the Title-8 scraper can read it. WHAT TO DO: add a PDF-extraction path (pdfplumber) for the dir.ca.gov Wage Order 16 PDF; tag domain=wage_hour, industries=[construction].",st:"next",blk:"—"},
- {t:"GAP — USERRA (federal military leave)",d:"PROBLEM: USERRA lives in 20 CFR Part 1002, but our federal eCFR scraper is hardcoded to Title 29. WHAT TO DO: parameterize the eCFR fetch by CFR title, then add the USERRA sections (20 CFR 1002.x). Pairs with CA military leave (MVC §394, already in).",st:"planned",blk:"—"},
+ {t:"GAP — PFL & SDI (paid family leave / disability) ✔",d:"DONE 2026-06-10: scrape_ca_edd.py scrapes 5 EDD program pages (PFL program + benefit amounts, SDI overview + DI amounts, contribution rates). UIC unservable via leginfo, so EDD's administered values are the source; the hash watcher flags the annual updates.",st:"done",blk:"—"},
+ {t:"GAP — IWC Wage Order 16 (construction) ✔",d:"DONE 2026-06-10: scrape_iwc_wage_order.py extracts the dir.ca.gov IWCArticle16.pdf via pdfplumber (43K chars, rev 11/2025) — meal/rest/OT/reporting-time pay for on-site construction. domain=wage_hour, industries=[construction].",st:"done",blk:"—"},
+ {t:"GAP — USERRA (federal military leave) ✔",d:"DONE 2026-06-10: eCFR fetch parameterized by CFR title; added 20 CFR §§ 1002.5/.18/.180 (definitions, anti-discrimination, reemployment right). Pairs with CA military leave (MVC §394). Also added the full 1910.1200 HazCom + 1910.134 Respiratory standards that 1926.59/.103 incorporate by reference.",st:"done",blk:"—"},
  {t:"GAP — Local city/county ordinances",d:"PROBLEM: local minimum-wage + paid-sick-leave ordinances stack on state law, but which apply depends on where each customer actually works — there is no single source to scrape. WHAT TO DO: enumerate the cities/counties a customer operates in (needs job-site locations), then scrape each locality's ordinance page. Placeholder until S&W's localities are confirmed.",st:"planned",blk:"customer locality list (Ops)"},
  {t:"GAP — Drug/Alcohol & Workplace Searches (#21, #23)",d:"PROBLEM: these are company POLICIES, not statutes — there is no single law/citation to scrape (drug testing touches constitutional privacy + FEHA, but no 'policy' statute exists). WHAT TO DO: do NOT scrape as Tier-1 regs; author them in the compliance_policies Tier 2/3 layer with Eddie/Melissa. Out of scope for the regulation scraper.",st:"planned",blk:"compliance_policies layer (Eddie/Melissa)"},
  {t:"Industry standards → TIER 2 (not Tier-1 regs)",d:"DECISION: NRCA / ABC / trade-body content is STANDARDS & best practice, not law — it does NOT belong in the regulations (Tier-1 legal-minimum) table. All industry-standard material feeds TIER 2 (industry standard) of the policy matrix (tier2_definition / tier2_source), authored with Eddie/Melissa. The sources are registered; only their classification changes.",st:"planned",blk:"compliance_policies Tier 2"},
  {t:"Capture every applicability VARIABLE",d:"Model all triggers that change what applies: headcount tiers, industry, public-works, drivers/CDL, subcontractors, locality (city/county ordinances), pay structure — as data, for any future tenant",st:"next",blk:"—"},
- {t:"Build the change-detection watcher",d:"Diff content_hash each run → write regulatory_changes rows (detected→in_review→approved)",st:"next",blk:"regulatory_changes table (Steven · CD-02)"},
+ {t:"Build the change-detection watcher ✔",d:"DONE 2026-06-10 (migration 003): compliance.regulatory_changes table live; the upsert RPC now logs every new/modified regulation automatically. Review via python show_changes.py (detected→in_review→approved/rejected).",st:"done",blk:"—"},
  {t:"Wire Regulations.gov + Congress.gov scrapers",d:"Use the new keys to add federal dockets/comments + statutes",st:"ready",blk:"—"},
  {t:"Structured obligation extraction",d:"Parse each reg into {threshold · who it applies to · required action} for the worker-requirement engine",st:"planned",blk:"—"},
  {t:"Embeddings / RAG layer",d:"Chunk + embed raw_text so an AI agent answers ad-hoc compliance Q&A",st:"planned",blk:"—"},
@@ -404,11 +404,13 @@ const TASKS=[
  {s:"done",t:"Idempotent upsert + change outcomes",d:"inserted/changed/unchanged per run",cat:"core"},
  {s:"done",t:"API keys validated & stored",d:"Regulations.gov + Congress.gov, in .env",cat:"infra"},
  {s:"done",t:"Production catalog audit reconciled",d:"2 tables clarified; verified Stephen's 23-rec audit; SQL emailed",cat:"review"},
- {s:"active",t:"Verify section list w/ Eddie/Melissa",d:"Confirm complete for roof tear-off",cat:"review"},
+ {s:"active",t:"Verify section list w/ Eddie/Melissa",d:"Tier1-Review.html ready — explainers on all 106 regs, confirm/flag writes to DB, sign-off gate",cat:"review"},
+ {s:"done",t:"Repealed-section audit",d:"4 repealed CA PPE shells purged (§1515–1520) → current GISO §3381–3385; repeal guard added to scraper",cat:"review"},
  {s:"active",t:"This onboarding console",d:"audit + tabs for future agents",cat:"docs"},
  {s:"done",t:"Added 6 missing Critical-30 safety",d:"IIPP §3203, HazCom §5194, LOTO §3314, Fire §3221, First Aid §3400, Confined Space §1950 → 42 sections",cat:"scrape"},
- {s:"next",t:"Stephen: apply 002 audit SQL to prod",d:"public.compliance_regulations · admin only · emailed 2026-06-09",cat:"infra"},
- {s:"next",t:"Change-detection watcher",d:"hash diff → regulatory_changes",cat:"core"},
+ {s:"done",t:"Migration 002 applied to prod",d:"public.compliance_regulations → 26 rows · applied 2026-06-10 via admin MCP",cat:"infra"},
+ {s:"done",t:"Change-detection watcher",d:"migration 003 · upsert logs to regulatory_changes · show_changes.py",cat:"core"},
+ {s:"done",t:"Tier-1 gap scrapers (EDD · WO16 · USERRA)",d:"PFL/SDI via EDD, Wage Order 16 PDF, 20 CFR 1002 + full 1910 HazCom/Resp → 105 regs",cat:"scrape"},
  {s:"next",t:"Wire Regulations.gov + Congress.gov",d:"keys ready",cat:"source"},
  {s:"backlog",t:"Structured extraction + RAG",d:"obligations + embeddings",cat:"core"},
  {s:"backlog",t:"Schedule + auto-refresh dashboard",d:"cron / Edge Function",cat:"infra"},
@@ -433,7 +435,10 @@ const BUILD=[
  {n:"15",s:"ok",h:"Expanded to 6 compliance domains",b:"Generalized the leginfo scraper to Labor/Government/B&P Codes; added leave & benefits, harassment/EEO/violence, licensing/insurance, prevailing wage → 66 regs, 30 topics. Headcount triggers now real data (CFRA/training 5+, school leave 25+)."},
  {n:"16",s:"ok",h:"Federal employment law + full source inventory",b:"Added FMLA/FLSA/ADA/Title VII via eCFR (federal thresholds: FMLA 50+, ADA/Title VII 15+) → 74 regs. Registered the complete Master Plan §11 source watch-list (22 sources: federal/CA/industry). Added db_export.py (full CSV + schema-layout doc)."},
  {n:"17",s:"fix",h:"Hardened dashboard (Industry jurisdiction)",b:"Industry sources broke the JUR color map → blank dashboard; added Industry + a safe jc() fallback so a new jurisdiction can never blank it again."},
- {n:"18",s:"ok",h:"Finished domain ingestion → 10 domains, 88 regs",b:"Added worker classification (AB5 §2775), retirement (CalSavers), privacy & conduct (social media §980, trade secrets, distracted driving), workforce reduction (WARN §1400), + expense reimb/lactation/whistleblower/fair-chance/pay-transparency/day-of-rest. New codes: Civil, Vehicle, Military & Veterans."}
+ {n:"18",s:"ok",h:"Finished domain ingestion → 10 domains, 88 regs",b:"Added worker classification (AB5 §2775), retirement (CalSavers), privacy & conduct (social media §980, trade secrets, distracted driving), workforce reduction (WARN §1400), + expense reimb/lactation/whistleblower/fair-chance/pay-transparency/day-of-rest. New codes: Civil, Vehicle, Military & Veterans."},
+ {n:"19",s:"fix",h:"Rewired DB access: psycopg2 → REST RPCs (2026-06-10)",b:"JWT keys had rotated (old service key stale) and the postgres password isn't retrievable — replaced the direct connection with SECURITY DEFINER compliance_* RPCs in public schema called via the current anon key. db.py is now 50 lines of pure requests."},
+ {n:"20",s:"ok",h:"Tier-1 complete + watcher LIVE → 105 regs (2026-06-10)",b:"Applied 002 to prod (26 rows). Closed every Tier-1 gap: EDD PFL/SDI scraper, Wage Order 16 PDF (pdfplumber), USERRA 20 CFR 1002 (eCFR parameterized by title), full 1910.1200/1910.134 standards, WARN §1400.5/1401/1402 + day-of-rest §552 + lactation §1031/1034 companions. Migration 003: regulatory_changes watcher — every insert/change auto-logged, reviewed via show_changes.py. De-hardcoded all dashboard counts/dates."},
+ {n:"21",s:"fix",h:"REPEALED-section audit + Eddie/Melissa review page (2026-06-10)",b:"User caught §1516 (Eye/Face Protection) is REPEALED — audit found 4 repealed construction PPE shells (§§1515/1516/1517/1520, repealed 1998–2000). Purged from DB; replaced with the current GISO standards §§3381–3385; scraper now auto-rejects any '(Repealed)' section. Built Tier1-Review.html (migration 004): plain-English explainer authored for ALL 106 regulations (explainers.py, coverage-checked at build), confirm/flag/suggest per section writes to compliance.section_reviews, sign-off gate when all reviewed."}
 ];
 
 const DECISIONS=[
@@ -533,8 +538,8 @@ const tipEl=s=>{const e=document.createElementNS(SVGNS,"title");e.textContent=s;
  node(192,78,118,46,"#11192a","#3b5680","Scrapers","fetch·parse·hash");
  node(372,78,126,46,"#11192a","#3b5680","Upsert","idempotent");
  node(556,52,132,40,"#0e1c16",cssv("var(--ok)"),"sources","Layer A · watch list");
- node(556,104,132,40,"#0e1c16",cssv("var(--ok)"),"regulations","Tier-1 facts · 36");
- node(556,158,132,34,"#1a1206",cssv("var(--warn)"),"regulatory_changes ⏳","watcher · next","5 4");
+ node(556,104,132,40,"#0e1c16",cssv("var(--ok)"),"regulations","Tier-1 facts · "+TOTAL);
+ node(556,158,132,34,"#0e1c16",cssv("var(--ok)"),"regulatory_changes","watcher · LIVE (003)");
  arrow(128,50,192,cssv("var(--fed)"));arrow(128,144,192,cssv("var(--ca)"));
  arrow(310,101,372);arrow(498,101,556);
  svg.appendChild(EL("line",{x1:622,y1:144,x2:622,y2:158,stroke:"#3a3010","stroke-width":1.4,"stroke-dasharray":"4 4","marker-end":"url(#ah)"}));
@@ -563,7 +568,7 @@ $("#schema-src").innerHTML=SCHEMA_SRC.map(([c,f,d])=>`<tr><td>${c}</td><td>${f==
 const popCols=SCHEMA_REG.filter(r=>r[2]==="yes").length,popTot=SCHEMA_REG.filter(r=>r[2]==="yes"||r[2]==="no").length;
 gauge("a1",popCols/popTot,"var(--ok)",Math.round(popCols/popTot*100)+"%",22);
 gauge("a2",CRITOK/CRITN,CRITOK===CRITN?"var(--ok)":"var(--part)",CRITOK+"/"+CRITN,22);
-$("#auditnote").innerHTML=`<b>What we captured:</b> the Tier-1 legal source layer — full text + citation + change hash for ${TOTAL} sections. <b>Now 9/10 Critical-30 safety policies</b> covered (added IIPP §3203, CA HazCom §5194, LOTO §3314, Fire §3221, First Aid §3400, construction Confined Space §1950 on 2026-06-09). <b>Still not built:</b> the <span class="mono">compliance_policies</span> matrix (Tier 2/3, assessment, worker reqs) and the <span class="mono">regulatory_changes</span> watcher log. We also over-delivered on roofing depth (asbestos/lead/silica, roofing ops, ladders, scaffolds, debris).`;
+$("#auditnote").innerHTML=`<b>What we captured:</b> the Tier-1 legal source layer — full text + citation + change hash for ${TOTAL} sections. <b>${CRITOK}/${CRITN} Critical-30 safety policies</b> covered. <b>Still not built:</b> the <span class="mono">compliance_policies</span> matrix (Tier 2/3, assessment, worker reqs). We also over-delivered on roofing depth (asbestos/lead/silica, roofing ops, ladders, scaffolds, debris).`;
 
 $("#crit30").innerHTML=CRIT30.map(r=>{const c={ok:"var(--ok)",part:"var(--part)",miss:"var(--bad)"}[r.st],lab={ok:"captured",part:"partial",miss:"missing"}[r.st];
  return `<tr><td class="mono" style="color:#5b6981">${r.n}</td><td>${r.p}</td><td class="mono" style="color:#cdd8ea;white-space:nowrap">${r.cit}</td><td><span class="st" style="background:${c}22;color:${c};border:1px solid ${c}">${lab}</span></td><td style="color:#aebbcd">${r.our}</td></tr>`;}).join("");
@@ -619,6 +624,12 @@ $("#tb-ai").textContent=aiOpen;
 const _fed=REGS.filter(r=>r.jur==="Federal").length,_ca=REGS.filter(r=>r.jur==="CA").length;
 $("#kpiTotal").textContent=TOTAL;$("#kpiSplit").textContent=_fed+" federal · "+_ca+" CA";
 $("#tbData").textContent=TOTAL;$("#hlReg").textContent=TOTAL;
+$("#pillSections").textContent=TOTAL;$("#chipSandbox").textContent=TOTAL;
+const TBL=CDO_DATA.tables||{};
+$("#hlSrc").textContent=TBL.sources??SOURCES.length;
+$("#hlLeave").textContent=TBL.leave_rules??"0";$("#hlDocs").textContent=TBL.documents??"0";
+$("#chipProd").textContent=TBL.prod_catalog??"—";
+$("#pillUpdated").textContent=(CDO_DATA.generatedAt||"").split(" ")[0]||"—";
 $("#kpiCrit").innerHTML=CRITOK+'<span style="font-size:14px;color:#8493ab">/'+CRITN+'</span>';
 $("#kpiCritD").textContent=(CRITOK===CRITN?"complete — all "+CRITN+" covered ✓":CRITN-CRITOK+" remaining");
 if(window.CDO_DATA&&CDO_DATA.generatedAt){var fe=document.querySelector(".foot");if(fe)fe.innerHTML+=" · data generated "+CDO_DATA.generatedAt+" from the live DB";}

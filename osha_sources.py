@@ -51,6 +51,11 @@ FEDERAL_SECTIONS = [
     ("1926.451", "scaffolds",         "Scaffold general requirements (access/landing)"),
     ("1926.1051","ladders",           "Stairways & ladders — general access"),
     ("1926.1053","ladders",           "Ladders (roof access)"),
+    # --- General-industry standards incorporated by reference (added 2026-06-10):
+    # 1926.59 and 1926.103 are one-line cross-references; the ACTUAL standards
+    # live in Part 1910 (same Title 29, same eCFR API).
+    ("1910.1200","hazcom",            "Hazard Communication — the full federal standard 1926.59 incorporates by reference"),
+    ("1910.134", "respiratory_hazmat","Respiratory Protection — the full federal standard 1926.103 incorporates by reference"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -80,11 +85,15 @@ CALIFORNIA_SECTIONS = [
     ("1532.1", "respiratory_hazmat","Lead (construction)"),
     ("1532.3", "respiratory_hazmat","Respirable crystalline silica (construction)"),
     ("5144",   "respiratory_hazmat","Respiratory protective equipment"),
-    ("1514",   "ppe",               "Personal protective devices — general"),
-    ("1515",   "ppe",               "Head protection"),
-    ("1516",   "ppe",               "Eye and face protection"),
-    ("1517",   "ppe",               "Foot protection"),
-    ("1520",   "ppe",               "Hand protection"),
+    ("1514",   "ppe",               "Personal protective devices — construction (points to GISO Art. 10)"),
+    # NOTE (2026-06-10 audit): construction PPE §§1515/1516/1517/1520 are REPEALED
+    # (eye/face repealed 2000; the GISO §3380-series governs construction too).
+    # The current controlling PPE standards are the GISO Article 10 sections:
+    ("3381",   "ppe",               "Head protection (GISO — current controlling standard)"),
+    ("3382",   "ppe",               "Eye and face protection (GISO — current controlling standard)"),
+    ("3383",   "ppe",               "Body protection (GISO)"),
+    ("3384",   "ppe",               "Hand protection (GISO — current controlling standard)"),
+    ("3385",   "ppe",               "Foot protection (GISO — current controlling standard)"),
     # --- Critical-30 safety completeness (added 2026-06-09) ---
     ("3203",   "safety_program",    "Injury & Illness Prevention Program (IIPP) — the foundational CA safety program every employer must have"),
     ("5194",   "hazcom",            "Hazard Communication (CA controlling standard; construction provisions at (f)(7); adds Prop 65)"),
